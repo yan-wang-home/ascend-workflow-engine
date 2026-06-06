@@ -1,0 +1,16 @@
+# IntelliJ — never commit IDE files (may contain API keys in workspace.xml)
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Gradle
+.gradle/
+build/
+
+# Environment / secrets
+.env
+*.env
+
+# OS
+.DS_Store

@@ -1,0 +1,416 @@
+{
+  "info": {
+    "name": "Ascend Approval Workflow Engine",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Admin User\",\n  \"role\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Approver",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Finance Manager\",\n  \"role\": \"APPROVER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Requester",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employee@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Jane Employee\",\n  \"role\": \"REQUESTER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (captures token)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const r = pm.response.json();",
+                "pm.environment.set('token', r.token);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Workflow Administration",
+      "item": [
+        {
+          "name": "Create Expense Report Workflow",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const r = pm.response.json();",
+                "pm.environment.set('template_id', r.id);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/workflows",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Expense Report Approval\",\n  \"description\": \"For all employee expense submissions\",\n  \"steps\": [\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": null,\n      \"name\": \"Manager Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"<MANAGER_USER_ID>\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": 48,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    },\n    {\n      \"stepOrder\": 2,\n      \"parallelGroup\": null,\n      \"name\": \"Finance Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"<FINANCE_USER_ID>\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": 24,\n      \"escalationUserId\": null,\n      \"conditions\": [\n        { \"fieldName\": \"amount\", \"operator\": \"GT\", \"value\": \"5000\" }\n      ]\n    },\n    {\n      \"stepOrder\": 3,\n      \"parallelGroup\": null,\n      \"name\": \"VP Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"<VP_USER_ID>\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": 24,\n      \"escalationUserId\": null,\n      \"conditions\": [\n        { \"fieldName\": \"amount\", \"operator\": \"GT\", \"value\": \"10000\" }\n      ]\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List Workflows",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/v1/workflows?page=0&size=20", "query": [
+              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
+            ]},
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Workflow by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/workflows/{{template_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Request Submission",
+      "item": [
+        {
+          "name": "Submit $3,000 Request (Manager only)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const r = pm.response.json();",
+                "pm.environment.set('request_id', r.id);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"Client dinner — Deloitte\",\n  \"metadata\": {\n    \"amount\": 3000,\n    \"vendor\": \"Le Bernardin\",\n    \"description\": \"Client dinner with Deloitte partners\",\n    \"category\": \"Entertainment\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit $7,000 Request (Manager + Finance)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"Software licenses — JetBrains\",\n  \"metadata\": {\n    \"amount\": 7000,\n    \"vendor\": \"JetBrains\",\n    \"description\": \"Annual team IDE licenses\",\n    \"category\": \"Software\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit $15,000 Request (All 3 steps)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"MacBook Pro fleet — Engineering\",\n  \"metadata\": {\n    \"amount\": 15000,\n    \"vendor\": \"Apple\",\n    \"description\": \"5x MacBook Pro for new engineering hires\",\n    \"category\": \"Equipment\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List My Requests",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/v1/requests?page=0&size=20", "query": [
+              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
+            ]},
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Request Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests/{{request_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Request Audit Trail",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests/{{request_id}}/audit",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Approval Inbox & Decisions",
+      "item": [
+        {
+          "name": "Get Inbox",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20", "query": [
+              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
+            ]},
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Approve Request",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{request_id}}/decide",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Looks good, approved.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reject Request",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{request_id}}/decide",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"REJECT\",\n  \"comment\": \"Budget not available this quarter.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Request Changes",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{request_id}}/decide",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"REQUEST_CHANGES\",\n  \"comment\": \"Please add a business justification.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Delegation",
+      "item": [
+        {
+          "name": "Create Delegation",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const r = pm.response.json();",
+                "pm.environment.set('delegation_id', r.id);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/delegations",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"delegateId\": \"<DELEGATE_USER_ID>\",\n  \"templateId\": null,\n  \"startsAt\": \"2026-06-05T00:00:00Z\",\n  \"endsAt\": \"2026-06-19T23:59:59Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Delegations",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/v1/delegations?page=0&size=20", "query": [
+              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
+            ]},
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Revoke Delegation",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/delegations/{{delegation_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Agent Chat",
+      "item": [
+        {
+          "name": "Review Pending Approvals",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const r = pm.response.json();",
+                "pm.environment.set('session_id', r.sessionId);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/agent/chat",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What requests are waiting for my approval?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit Request — Turn 1 (vague)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/agent/chat",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"I need approval for a laptop purchase.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit Request — Turn 2 (provide details)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/agent/chat",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"It's $5,000 from Apple, for the new engineering hire starting next week.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit Request — Turn 3 (confirm)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/agent/chat",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Yes, please proceed.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Approve Request via Agent",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/agent/chat",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Approve the most recent laptop purchase request.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Workflow via Agent",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/agent/chat",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Create a workflow where purchases over $10,000 require Finance approval followed by VP approval.\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
