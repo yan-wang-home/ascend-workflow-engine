@@ -1,4 +1,0 @@
-spring:
-  ai:
-    anthropic:
-      api-key: test-key
