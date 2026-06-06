@@ -34,6 +34,7 @@ public class RequestService {
     private final InstanceStepRepository instanceStepRepository;
     private final ConditionEvaluator conditionEvaluator;
     private final AuditService auditService;
+    private final EscalationService escalationService;
     private final ObjectMapper objectMapper;
 
     public Mono<WorkflowInstance> submit(SubmitRequestDto request, UUID requesterId) {
@@ -93,7 +94,12 @@ public class RequestService {
                             .status(status)
                             .startedAt(startedAt)
                             .build();
-                    return instanceStepRepository.save(instanceStep);
+                    return instanceStepRepository.save(instanceStep)
+                            .doOnSuccess(saved -> {
+                                if (saved.getStartedAt() != null) {
+                                    escalationService.scheduleEscalation(saved, step);
+                                }
+                            });
                 });
     }
 

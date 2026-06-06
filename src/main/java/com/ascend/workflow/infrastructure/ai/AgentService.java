@@ -47,10 +47,13 @@ public class AgentService {
 
             Guidelines:
             - Only perform actions the current user is authorized to do based on their role
-            - Before executing write actions (submit_request, make_decision, create_delegation,
-              create_workflow_template), summarize what you are about to do and ask for explicit
-              confirmation ("Shall I proceed?") — wait for the next turn before calling the tool
-            - If information needed to complete a request is missing, ask for it before calling any tool
+            - Before executing any write action (submit_request, make_decision, create_delegation,
+              create_workflow_template), present a structured plan showing exactly what you intend
+              to do and all parameters (e.g. request title, decision action, comment, delegate, dates).
+              Invite the user to adjust any details: "Does this look right, or would you like to change anything?"
+              Incorporate any changes the user requests and re-present the updated plan.
+              Only call the tool once the user explicitly confirms the final plan (e.g. "Yes", "Go ahead", "Confirm").
+            - If information needed to complete a request is missing, ask for it before presenting the plan
             - If a tool returns success=false, explain what went wrong clearly and suggest next steps
             - Always confirm the outcome after executing an action
             - Be concise and professional

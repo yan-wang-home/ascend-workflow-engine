@@ -31,7 +31,7 @@ graph TB
             RequestSvc["RequestService\n+ ConditionEvaluator"]
             ApprovalSvc["ApprovalService"]
             DelegationSvc["DelegationService"]
-            EscalationSched["EscalationScheduler\n(@Scheduled every 15 min)"]
+            EscalationSched["EscalationService\n(ThreadPoolTaskScheduler\nexact-time callbacks)"]
             AuditSvc["AuditService"]
         end
 
@@ -103,14 +103,14 @@ flowchart TD
 
     L -->|"No"| N(["workflow_instance\nstatus = APPROVED ✓"])
 
-    subgraph Escalation["Background — EscalationScheduler every 15 min"]
-        ES1["Find PENDING instance_steps\npast timeout_hours\nWHERE escalated_at IS NULL"]
-        ES2["Set escalated_at\n(idempotency guard)\nstatus = ESCALATED"]
-        ES3["Create new PENDING step\nassigned to escalation_user_id"]
+    subgraph Escalation["Background — EscalationService (ThreadPoolTaskScheduler)"]
+        ES1["Schedule exact-time callback\nwhen step becomes PENDING\n(startedAt + timeoutHours × scale)"]
+        ES2["On fire: re-fetch step\ncheck status=PENDING & escalated_at IS NULL\n(idempotency guard)"]
+        ES3["Mark ESCALATED\nCreate new PENDING step\nassigned to escalation_user_id\nSchedule escalation on new step"]
         ES1 --> ES2 --> ES3
     end
 
-    F -.->|"if timeout exceeded"| ES1
+    F -.->|"scheduleEscalation()"| ES1
     ES3 -.->|"new step enters inbox"| G
 ```
 

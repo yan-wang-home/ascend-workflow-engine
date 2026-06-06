@@ -30,6 +30,7 @@ public class ApprovalService {
     private final GroupMemberRepository groupMemberRepository;
     private final DelegationRepository delegationRepository;
     private final AuditService auditService;
+    private final EscalationService escalationService;
 
     public Flux<WorkflowInstance> getInbox(UUID userId, Pageable pageable) {
         int limit = pageable.getPageSize();
@@ -144,7 +145,10 @@ public class ApprovalService {
                             .then(Flux.fromIterable(nextSteps)
                                     .flatMap(step -> {
                                         step.setStartedAt(OffsetDateTime.now());
-                                        return instanceStepRepository.save(step);
+                                        return instanceStepRepository.save(step)
+                                                .flatMap(saved -> workflowStepRepository.findById(saved.getStepId())
+                                                        .doOnNext(ws -> escalationService.scheduleEscalation(saved, ws))
+                                                        .thenReturn(saved));
                                     }).then());
                 });
     }
@@ -156,6 +160,7 @@ public class ApprovalService {
     }
 
     private Mono<Void> markStepComplete(InstanceStep step, String status) {
+        escalationService.cancelEscalation(step.getId());
         step.setStatus(status);
         step.setCompletedAt(OffsetDateTime.now());
         return instanceStepRepository.save(step).then();

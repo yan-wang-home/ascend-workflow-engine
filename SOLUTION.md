@@ -30,7 +30,7 @@ The schema (`V1__init.sql`) has 13 tables organised around three concerns:
 
 **`metadata JSONB` on `workflow_instances`** — allows any request type (purchase orders, hiring approvals, expense claims) without schema changes. `step_conditions` evaluate against this field at runtime.
 
-**`escalated_at` on `instance_steps`** — a nullable timestamp set when a step is escalated. The scheduler uses `escalated_at IS NULL` to find un-escalated overdue steps, preventing duplicate escalations across scheduler runs.
+**`escalated_at` on `instance_steps`** — a nullable timestamp set when a step is escalated. `EscalationService` re-fetches the step at fire time and checks `escalated_at IS NULL` before acting, preventing double-escalation if a concurrent decision arrives just as the timer fires.
 
 ## Part 2 — REST API
 
@@ -55,7 +55,7 @@ Six controllers expose 24+ endpoints, all documented in Swagger UI.
 - **Conditional steps** — `step_conditions` with operators `EQ`, `NEQ`, `GT`, `GTE`, `LT`, `LTE`, `IN`, `CONTAINS` evaluated against request metadata. Steps whose conditions do not match are auto-skipped.
 - **Parallel approvals** — steps with the same `parallel_group` are activated simultaneously. The workflow waits for all to complete before advancing.
 - **Group approvals** — steps can target a `user_group` instead of an individual user; any group member can decide.
-- **Escalation** — a `@Scheduled` job runs every 15 minutes, finds `PENDING` steps past their `timeout_hours` with `escalated_at IS NULL`, sets `escalated_at` (idempotency guard), and creates a new pending step for the designated escalation user.
+- **Escalation** — `EscalationService` uses `ThreadPoolTaskScheduler` to schedule an exact-time callback when a step becomes `PENDING`. The trigger fires at `startedAt + (timeoutHours × timeout-hour-in-seconds)`. On fire it re-fetches the step, checks `escalated_at IS NULL` (idempotency guard), marks it `ESCALATED`, and creates a new `PENDING` step for the designated escalation user. Decisions cancel the pending timer. Set `app.escalation.timeout-hour-in-seconds=60` to demo escalation in real time.
 - **Delegations** — `getInbox` merges delegated requests so a delegate sees items they are covering on behalf of the delegator.
 
 ### Error handling

@@ -23,6 +23,9 @@ app:
     api-key: ${ANTHROPIC_API_KEY:}
     model: claude-sonnet-4-6
 
+  escalation:
+    timeout-hour-in-seconds: 3600  # seconds per timeout_hours unit; set to 60 for demo mode
+
   jwt:
     secret: ${JWT_SECRET:ascend-workflow-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
     expiration-ms: 86400000
