@@ -54,7 +54,9 @@ public class AnthropicClient {
                 .header("anthropic-version", API_VERSION)
                 .bodyValue(body.toString())
                 .retrieve()
-                .bodyToMono(JsonNode.class)
-                .doOnError(e -> log.error("Anthropic API error: {}", e.getMessage()));
+                .onStatus(status -> status.isError(), response -> response.bodyToMono(String.class)
+                        .doOnNext(errorBody -> log.error("Anthropic API error {}: {}", response.statusCode(), errorBody))
+                        .flatMap(errorBody -> Mono.error(new RuntimeException("Anthropic API " + response.statusCode() + ": " + errorBody))))
+                .bodyToMono(JsonNode.class);
     }
 }

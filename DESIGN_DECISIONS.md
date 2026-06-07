@@ -42,7 +42,7 @@ Architectural choices made during implementation, with rationale and production 
 
 **Trade-off:** Not restart-safe — in-memory futures are lost on application restart. Steps that were pending at shutdown need re-scheduling on startup (not implemented; acceptable for this scope). Production path: **Redis `RDelayedQueue` (Redisson)** — persisted, multi-instance safe, O(1) per escalation, survives restarts.
 
-**Idempotency guard:** `doEscalate()` re-fetches the step from the DB and checks `status=PENDING && escalated_at IS NULL` before acting, preventing double-escalation if a concurrent decision arrives just as the timer fires.
+**Idempotency guard:** `doEscalate()` re-fetches the step from the DB and checks `status=PENDING && escalated_at IS NULL` before acting, preventing double-escalation if a concurrent decision arrives just as the timer fires. Escalation fires exactly once per step — the new PENDING step created for the escalation user is not re-scheduled, so there is no infinite escalation chain.
 
 ---
 

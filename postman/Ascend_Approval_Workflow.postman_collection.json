@@ -4,183 +4,231 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "http://localhost:8080" }
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    }
   ],
   "item": [
     {
-      "name": "1. Auth",
+      "name": "0. Common",
       "item": [
         {
-          "name": "Register Admin",
-          "request": {
-            "method": "POST",
-            "url": "{{base_url}}/api/v1/auth/register",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Admin User\",\n  \"role\": \"ADMIN\"\n}"
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('admin_id', r.userId);"
+                ]
+              }
             }
-          }
-        },
-        {
-          "name": "Register Approver",
-          "request": {
-            "method": "POST",
-            "url": "{{base_url}}/api/v1/auth/register",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Finance Manager\",\n  \"role\": \"APPROVER\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Register Requester",
-          "request": {
-            "method": "POST",
-            "url": "{{base_url}}/api/v1/auth/register",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"employee@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Jane Employee\",\n  \"role\": \"REQUESTER\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Login (captures token)",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "exec": [
-                "const r = pm.response.json();",
-                "pm.environment.set('token', r.token);"
-              ]
-            }
-          }],
+          ],
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/v1/auth/login",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "2. Workflow Administration",
-      "item": [
+        },
         {
-          "name": "Create Expense Report Workflow",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "exec": [
-                "const r = pm.response.json();",
-                "pm.environment.set('template_id', r.id);"
-              ]
+          "name": "Login as Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('manager_id', r.userId);"
+                ]
+              }
             }
-          }],
+          ],
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/workflows",
+            "url": "{{base_url}}/api/v1/auth/login",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Expense Report Approval\",\n  \"description\": \"For all employee expense submissions\",\n  \"steps\": [\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": null,\n      \"name\": \"Manager Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"<MANAGER_USER_ID>\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": 48,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    },\n    {\n      \"stepOrder\": 2,\n      \"parallelGroup\": null,\n      \"name\": \"Finance Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"<FINANCE_USER_ID>\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": 24,\n      \"escalationUserId\": null,\n      \"conditions\": [\n        { \"fieldName\": \"amount\", \"operator\": \"GT\", \"value\": \"5000\" }\n      ]\n    },\n    {\n      \"stepOrder\": 3,\n      \"parallelGroup\": null,\n      \"name\": \"VP Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"<VP_USER_ID>\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": 24,\n      \"escalationUserId\": null,\n      \"conditions\": [\n        { \"fieldName\": \"amount\", \"operator\": \"GT\", \"value\": \"10000\" }\n      ]\n    }\n  ]\n}"
+              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\"\n}"
             }
           }
         },
         {
-          "name": "List Workflows",
+          "name": "Login as Finance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('finance_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as VP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('vp_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox \u2014 Admin",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/v1/workflows?page=0&size=20", "query": [
-              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
-            ]},
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "url": "{{base_url}}/api/v1/approvals/inbox",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         },
         {
-          "name": "Get Workflow by ID",
+          "name": "Get Inbox \u2014 Manager",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/v1/workflows/{{template_id}}",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. Request Submission",
-      "item": [
-        {
-          "name": "Submit $3,000 Request (Manager only)",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "exec": [
-                "const r = pm.response.json();",
-                "pm.environment.set('request_id', r.id);"
-              ]
-            }
-          }],
-          "request": {
-            "method": "POST",
-            "url": "{{base_url}}/api/v1/requests",
+            "url": "{{base_url}}/api/v1/approvals/inbox",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"Client dinner — Deloitte\",\n  \"metadata\": {\n    \"amount\": 3000,\n    \"vendor\": \"Le Bernardin\",\n    \"description\": \"Client dinner with Deloitte partners\",\n    \"category\": \"Entertainment\"\n  }\n}"
-            }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         },
         {
-          "name": "Submit $7,000 Request (Manager + Finance)",
+          "name": "Get Inbox \u2014 Finance",
           "request": {
-            "method": "POST",
-            "url": "{{base_url}}/api/v1/requests",
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"Software licenses — JetBrains\",\n  \"metadata\": {\n    \"amount\": 7000,\n    \"vendor\": \"JetBrains\",\n    \"description\": \"Annual team IDE licenses\",\n    \"category\": \"Software\"\n  }\n}"
-            }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         },
         {
-          "name": "Submit $15,000 Request (All 3 steps)",
+          "name": "Get Inbox \u2014 VP",
           "request": {
-            "method": "POST",
-            "url": "{{base_url}}/api/v1/requests",
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"MacBook Pro fleet — Engineering\",\n  \"metadata\": {\n    \"amount\": 15000,\n    \"vendor\": \"Apple\",\n    \"description\": \"5x MacBook Pro for new engineering hires\",\n    \"category\": \"Equipment\"\n  }\n}"
-            }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get Inbox \u2014 Requester",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         },
         {
           "name": "List My Requests",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/v1/requests?page=0&size=20", "query": [
-              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
-            ]},
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "url": "{{base_url}}/api/v1/requests?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         },
         {
@@ -188,7 +236,578 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/v1/requests/{{request_id}}",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "description": "Set {{request_id}} to any instance ID. Returns full detail with steps and their decisions (including REQUEST_CHANGES comments)."
+          }
+        },
+        {
+          "name": "Get Request Audit Trail",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests/{{request_id}}/audit?page=0&size=50",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "description": "Full chronological audit log for a request. Set {{request_id}} to the instance ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) { pm.environment.set('admin_id', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Admin User\",\n  \"role\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) { pm.environment.set('manager_id', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Alice Manager\",\n  \"role\": \"APPROVER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Finance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) { pm.environment.set('finance_id', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Bob Finance\",\n  \"role\": \"APPROVER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register VP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) { pm.environment.set('vp_id', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Carol VP\",\n  \"role\": \"APPROVER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) { pm.environment.set('requester_id', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Jane Requester\",\n  \"role\": \"REQUESTER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('admin_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('manager_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Finance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('finance_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as VP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('vp_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Workflow Administration",
+      "description": "Run 'Login as Admin' in section 1 first.",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('admin_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Expense Report Workflow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('template_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/workflows",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Expense Report Approval\",\n  \"description\": \"For all employee expense submissions\",\n  \"steps\": [\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": null,\n      \"name\": \"Manager Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{manager_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    },\n    {\n      \"stepOrder\": 2,\n      \"parallelGroup\": null,\n      \"name\": \"Finance Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{finance_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": [\n        {\n          \"fieldName\": \"amount\",\n          \"operator\": \"GT\",\n          \"value\": \"5000\"\n        }\n      ]\n    },\n    {\n      \"stepOrder\": 3,\n      \"parallelGroup\": null,\n      \"name\": \"VP Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{vp_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": [\n        {\n          \"fieldName\": \"amount\",\n          \"operator\": \"GT\",\n          \"value\": \"10000\"\n        }\n      ]\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List Workflows",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/workflows?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get Workflow by ID (includes steps)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/workflows/{{template_id}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Update Workflow (Admin only)",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/v1/workflows/{{template_id}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Expense Report Approval (Updated)\",\n  \"description\": \"Updated description\",\n  \"steps\": [\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": null,\n      \"name\": \"Manager Approval\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{manager_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate Workflow (Admin only)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/workflows/{{template_id}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Request Submission",
+      "description": "Requester submits 3 requests \u2014 different amounts trigger different step paths.",
+      "item": [
+        {
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit $3,000 Request (Manager only \u2014 steps 2 & 3 skipped)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('request_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"Client dinner \u2014 Deloitte\",\n  \"metadata\": {\n    \"amount\": 3000,\n    \"vendor\": \"Le Bernardin\",\n    \"description\": \"Client dinner with Deloitte partners\",\n    \"category\": \"Entertainment\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit $7,000 Request (Manager + Finance \u2014 step 3 skipped)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('medium_request_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"Software licenses \u2014 JetBrains\",\n  \"metadata\": {\n    \"amount\": 7000,\n    \"vendor\": \"JetBrains\",\n    \"description\": \"Annual team IDE licenses\",\n    \"category\": \"Software\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit $15,000 Request (Manager \u2192 Finance \u2192 VP \u2014 all 3 steps)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('big_request_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"MacBook Pro fleet \u2014 Engineering\",\n  \"metadata\": {\n    \"amount\": 15000,\n    \"vendor\": \"Apple\",\n    \"description\": \"5x MacBook Pro for new engineering hires\",\n    \"category\": \"Equipment\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List My Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get Request Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests/{{request_id}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         },
         {
@@ -196,66 +815,412 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/v1/requests/{{request_id}}/audit",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Cancel Request (Requester only \u2014 must be PENDING)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/requests/{{request_id}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         }
       ]
     },
     {
       "name": "4. Approval Inbox & Decisions",
+      "description": "Full 3-approver chain on $15k. REQUEST_CHANGES loop on $7k: Manager requests changes \u2192 Requester resubmits with vendor quote \u2192 Manager approves.",
       "item": [
         {
-          "name": "Get Inbox",
+          "name": "Login as Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('manager_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"manager@ascend.com\", \"password\": \"password123\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox (Manager \u2014 sees all 3 requests at step 1)",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20", "query": [
-              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
-            ]},
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         },
         {
-          "name": "Approve Request",
+          "name": "Approve $3,000 Request (closes immediately \u2014 steps 2 & 3 were SKIPPED)",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/v1/approvals/{{request_id}}/decide",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Looks good, approved.\"\n}"
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Approved \u2014 within manager discretion.\"\n}"
             }
           }
         },
         {
-          "name": "Reject Request",
+          "name": "Request Changes on $7,000 Request (instance \u2192 CHANGES_REQUESTED; step stays PENDING)",
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/approvals/{{request_id}}/decide",
+            "url": "{{base_url}}/api/v1/approvals/{{medium_request_id}}/decide",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"action\": \"REJECT\",\n  \"comment\": \"Budget not available this quarter.\"\n}"
+              "raw": "{\n  \"action\": \"REQUEST_CHANGES\",\n  \"comment\": \"Please add a vendor quote and a business justification before I can approve.\"\n}"
             }
           }
         },
         {
-          "name": "Request Changes",
+          "name": "Approve $15,000 Request \u2014 Step 1: Manager (advances to Finance)",
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/approvals/{{request_id}}/decide",
+            "url": "{{base_url}}/api/v1/approvals/{{big_request_id}}/decide",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"action\": \"REQUEST_CHANGES\",\n  \"comment\": \"Please add a business justification.\"\n}"
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Headcount approved, proceeding to Finance.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"requester@ascend.com\", \"password\": \"password123\"}"
+            }
+          }
+        },
+        {
+          "name": "List My Requests (requester sees $7k status = CHANGES_REQUESTED)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get $7k Request Details (requester sees Manager's comment)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests/{{medium_request_id}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "description": "Returns the full instance with each step and its decisions. The CHANGES_REQUESTED decision on step 1 contains the Manager's comment explaining what needs to be fixed."
+          }
+        },
+        {
+          "name": "Resubmit $7,000 Request with updated metadata (status \u2192 PENDING)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests/{{medium_request_id}}/resubmit",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Software licenses \u2014 JetBrains (revised)\",\n  \"metadata\": {\n    \"amount\": 7000,\n    \"vendor\": \"JetBrains\",\n    \"description\": \"Annual team IDE licenses\",\n    \"category\": \"Software\",\n    \"vendorQuote\": \"Q-2026-JB-4421\",\n    \"justification\": \"Required for 5 engineers joining Q3; reduces context-switching vs free tier\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('manager_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"manager@ascend.com\", \"password\": \"password123\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox (Manager \u2014 $7k back as PENDING after resubmit)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Approve $7,000 Request \u2014 Step 1: Manager (advances to Finance)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{medium_request_id}}/decide",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Vendor quote received. Approved.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Finance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('finance_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"finance@ascend.com\", \"password\": \"password123\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox (Finance \u2014 sees $15k at step 2 and $7k at step 2)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Approve $15,000 Request \u2014 Step 2: Finance (advances to VP)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{big_request_id}}/decide",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Budget available, forwarding to VP for final sign-off.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Approve $7,000 Request \u2014 Step 2: Finance (closes \u2014 step 3 was SKIPPED)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{medium_request_id}}/decide",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Vendor quote verified. Approved.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as VP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('vp_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"vp@ascend.com\", \"password\": \"password123\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox (VP \u2014 sees $15k at step 3)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Approve $15,000 Request \u2014 Step 3: VP (workflow closes APPROVED)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{big_request_id}}/decide",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Strategic investment approved at VP level.\"\n}"
             }
           }
         }
@@ -263,39 +1228,240 @@
     },
     {
       "name": "5. Delegation",
+      "description": "Manager delegates to Requester. A fresh request is submitted so the inbox is populated after Act 4 approved everything.",
       "item": [
         {
-          "name": "Create Delegation",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "exec": [
-                "const r = pm.response.json();",
-                "pm.environment.set('delegation_id', r.id);"
-              ]
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
             }
-          }],
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"requester@ascend.com\", \"password\": \"password123\"}"
+            }
+          }
+        },
+        {
+          "name": "Submit Delegation Test Request (gives Manager a pending item to delegate)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{template_id}}\",\n  \"title\": \"Conference travel \u2014 PyCon 2026\",\n  \"metadata\": {\n    \"amount\": 2500,\n    \"vendor\": \"Delta Airlines\",\n    \"description\": \"Conference travel and hotel for PyCon 2026\",\n    \"category\": \"Travel\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('delegation_request_id', r.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('manager_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"manager@ascend.com\", \"password\": \"password123\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Manager Inbox (confirms travel request is pending)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "description": "Shows the $2,500 travel request sitting in Manager's inbox before delegation is created."
+          }
+        },
+        {
+          "name": "Create Delegation (Manager \u2192 VP, covers while out of office)",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/v1/delegations",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"delegateId\": \"<DELEGATE_USER_ID>\",\n  \"templateId\": null,\n  \"startsAt\": \"2026-06-05T00:00:00Z\",\n  \"endsAt\": \"2026-06-19T23:59:59Z\"\n}"
+              "raw": "{\n  \"delegateId\": \"{{vp_id}}\",\n  \"templateId\": null,\n  \"startsAt\": \"2026-01-01T00:00:00Z\",\n  \"endsAt\": \"2026-12-31T23:59:59Z\"\n}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('delegation_id', r.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Delegations",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/api/v1/delegations?page=0&size=20", "query": [
-              { "key": "page", "value": "0" }, { "key": "size", "value": "20" }
-            ]},
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "url": "{{base_url}}/api/v1/delegations?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Login as VP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "pm.environment.set('token', r.token);",
+                  "pm.environment.set('vp_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox as Delegate (VP sees Manager's delegated travel request)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "VP Approves Delegated Travel Request",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{delegation_request_id}}/decide",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Approved on behalf of Manager (delegation)\"\n}"
+            },
+            "description": "VP approves the travel request acting as Manager's delegate. The decision is recorded under VP's userId."
+          }
+        },
+        {
+          "name": "Login as Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('manager_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"manager@ascend.com\", \"password\": \"password123\"}"
+            }
           }
         },
         {
@@ -303,171 +1469,2966 @@
           "request": {
             "method": "DELETE",
             "url": "{{base_url}}/api/v1/delegations/{{delegation_id}}",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         }
       ]
     },
     {
-      "name": "6. Agent Chat",
+      "name": "6. Group Approval",
+      "description": "Finance + VP are members of Finance Team. VP approves \u2014 demonstrating any group member can decide.",
       "item": [
         {
-          "name": "Review Pending Approvals",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "exec": [
-                "const r = pm.response.json();",
-                "pm.environment.set('session_id', r.sessionId);"
-              ]
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('admin_id', r.userId);"
+                ]
+              }
             }
-          }],
+          ],
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/auth/login",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What requests are waiting for my approval?\"\n}"
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
             }
           }
         },
         {
-          "name": "Submit Request — Turn 1 (vague)",
+          "name": "List Groups",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/groups",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Create Group 'Finance Team'",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('group_id', r.id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/groups",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"I need approval for a laptop purchase.\"\n}"
+              "raw": "{\n  \"name\": \"Finance Team\",\n  \"description\": \"Finance and VP approvers\"\n}"
             }
           }
         },
         {
-          "name": "Submit Request — Turn 2 (provide details)",
+          "name": "Add Finance to Group",
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/groups/{{group_id}}/members",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"It's $5,000 from Apple, for the new engineering hire starting next week.\"\n}"
+              "raw": "{\n  \"userId\": \"{{finance_id}}\"\n}"
             }
           }
         },
         {
-          "name": "Submit Request — Turn 3 (confirm)",
+          "name": "Add VP to Group",
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/groups/{{group_id}}/members",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Yes, please proceed.\"\n}"
+              "raw": "{\n  \"userId\": \"{{vp_id}}\"\n}"
             }
           }
         },
         {
-          "name": "Approve Request via Agent — Turn 1 (intent)",
+          "name": "Create Group-Approval Workflow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('group_template_id', r.id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/workflows",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Approve the most recent laptop purchase request.\"\n}"
+              "raw": "{\n  \"name\": \"Group-Based Approval\",\n  \"description\": \"ALL members of Finance Team must approve\",\n  \"steps\": [\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": null,\n      \"name\": \"Finance Team Review\",\n      \"approverType\": \"GROUP\",\n      \"approverId\": \"{{group_id}}\",\n      \"approvalMode\": \"ALL_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    }\n  ]\n}"
             }
           }
         },
         {
-          "name": "Approve Request via Agent — Turn 2 (refine)",
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/auth/login",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Add comment: approved by finance team\"\n}"
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
             }
           }
         },
         {
-          "name": "Approve Request via Agent — Turn 3 (confirm)",
+          "name": "Submit Group-Approval Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('group_request_id', r.id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/requests",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Yes, proceed.\"\n}"
+              "raw": "{\n  \"templateId\": \"{{group_template_id}}\",\n  \"title\": \"Office supplies \u2014 Q3\",\n  \"metadata\": {\n    \"amount\": 1200,\n    \"vendor\": \"Staples\",\n    \"description\": \"Quarterly office supplies restock\"\n  }\n}"
             }
           }
         },
         {
-          "name": "Create Workflow via Agent — Turn 1 (intent)",
+          "name": "Login as Finance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('finance_id', r.userId);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/auth/login",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Create a workflow where purchases over $10,000 require Finance approval followed by VP approval.\"\n}"
+              "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\"\n}"
             }
           }
         },
         {
-          "name": "Create Workflow via Agent — Turn 2 (refine)",
+          "name": "Get Inbox (Finance sees group-assigned request)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "description": "Finance is a group member \u2014 the request appears in their inbox too."
+          }
+        },
+        {
+          "name": "Finance Approves Group Request (ALL_OF \u2014 1 of 2)",
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/approvals/{{group_request_id}}/decide",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Add a description: standard procurement workflow for high-value purchases\"\n}"
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Looks good from Finance\"\n}"
+            },
+            "description": "Step still PENDING after this \u2014 waiting for VP."
+          }
+        },
+        {
+          "name": "Login as VP (group member \u2014 not the explicit approver)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('vp_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
             }
           }
         },
         {
-          "name": "Create Workflow via Agent — Turn 3 (confirm)",
+          "name": "Get Inbox (VP sees group-assigned request)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "VP Approves Group Request (ALL_OF \u2014 2 of 2, workflow closes)",
           "request": {
             "method": "POST",
-            "url": "{{base_url}}/api/v1/agent/chat",
+            "url": "{{base_url}}/api/v1/approvals/{{group_request_id}}/decide",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"Yes, proceed.\"\n}"
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Approved by VP \u2014 both members agreed\"\n}"
+            },
+            "description": "Both members have now approved \u2192 workflow advances / closes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Parallel Approval",
+      "description": "Manager and Finance approve simultaneously (parallel_group=1). Both must complete before VP's final sign-off activates.",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('admin_id', r.userId);"
+                ]
+              }
             }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Parallel-Approval Workflow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('parallel_template_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/workflows",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Parallel Approval\",\n  \"description\": \"Manager and Finance approve simultaneously; VP gives final sign-off\",\n  \"steps\": [\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": 1,\n      \"name\": \"Manager Sign-off\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{manager_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    },\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": 1,\n      \"name\": \"Finance Sign-off\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{finance_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    },\n    {\n      \"stepOrder\": 2,\n      \"parallelGroup\": null,\n      \"name\": \"VP Final Confirmation\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{vp_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": null,\n      \"escalationUserId\": null,\n      \"conditions\": []\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit Parallel Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('parallel_request_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{parallel_template_id}}\",\n  \"title\": \"New hire equipment bundle\",\n  \"metadata\": {\n    \"amount\": 4500,\n    \"vendor\": \"Dell\",\n    \"description\": \"Laptop, monitor, peripherals for Q3 hires\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('manager_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox (Manager \u2014 step 1A pending)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Approve Step 1A \u2014 Manager Sign-off (Finance still pending; step 2 not yet active)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{parallel_request_id}}/decide",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Manager sign-off complete.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Finance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('finance_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox (Finance \u2014 step 1B still pending)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Approve Step 1B \u2014 Finance Sign-off (parallel group complete \u2192 step 2 activates)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{parallel_request_id}}/decide",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Finance sign-off complete.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as VP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('vp_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox (VP \u2014 step 2 Final Confirmation now active)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Approve Step 2 \u2014 VP Final Confirmation (workflow closes APPROVED)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{parallel_request_id}}/decide",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Both parallel approvals received. Final confirmation granted.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Escalation Demo",
+      "description": "Requires app running with APP_ESCALATION_TIMEOUT_HOUR_IN_SECONDS=60. Manager step times out after 60s and escalates to VP.",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('admin_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Escalation Workflow (timeoutHours=1 \u2192 fires in 60s with demo config)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('escalation_template_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/workflows",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Escalation Demo Workflow\",\n  \"description\": \"Manager review \u2014 escalates to VP after 60 seconds if not actioned\",\n  \"steps\": [\n    {\n      \"stepOrder\": 1,\n      \"parallelGroup\": null,\n      \"name\": \"Manager Review\",\n      \"approverType\": \"USER\",\n      \"approverId\": \"{{manager_id}}\",\n      \"approvalMode\": \"ANY_OF\",\n      \"timeoutHours\": 1,\n      \"escalationUserId\": \"{{vp_id}}\",\n      \"conditions\": []\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as Requester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('requester_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit Escalation Request (\u23f1 now wait 60 seconds without approving)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('escalation_request_id', r.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/requests",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"{{escalation_template_id}}\",\n  \"title\": \"Urgent server upgrade\",\n  \"metadata\": {\n    \"amount\": 8000,\n    \"vendor\": \"AWS\",\n    \"description\": \"Emergency capacity upgrade \u2014 production traffic spike\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "\u23f1 [Wait 60 seconds] Check Request \u2014 original step should be ESCALATED",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/requests/{{escalation_request_id}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Login as VP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set('token', r.token); pm.environment.set('vp_id', r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Inbox as VP (escalated step now assigned here)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/approvals/inbox?page=0&size=20",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Approve Escalated Step as VP (workflow closes APPROVED)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/approvals/{{escalation_request_id}}/decide",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"comment\": \"Escalated approval granted by VP.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Agent Chat",
+      "description": "Multi-turn AI assistant. Finance reviews their inbox, submits a request (3 turns), then approves via agent (3 turns). Admin views logs at the end.",
+      "item": [
+        {
+          "name": "9a. Normal Flow \u2014 Create Template, Submit, Approve",
+          "item": [
+            {
+              "name": "Login as Admin",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"admin_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Equipment Purchase Workflow \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"admin_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Create a 2-step Equipment Purchase approval workflow. Finance approves step 1, VP approves step 2.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Equipment Purchase Workflow \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{admin_session_id}}\",\n  \"message\": \"Yes, go ahead.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Requester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"requester_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Laptop Request \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"requester_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"I need to submit an approval request for a laptop purchase.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Laptop Request \u2014 Turn 2 (provide details)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"It's $3,500 from Apple, for the new engineering hire starting next week. Use the Equipment Purchase workflow.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Laptop Request \u2014 Turn 3 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Yes, please submit it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Finance",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"finance_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Finance: Review Inbox",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"finance_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What approval requests are waiting for me?\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Finance: Approve \u2014 Turn 1 (state intent)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{finance_session_id}}\",\n  \"message\": \"Approve the laptop purchase request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Finance: Approve \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{finance_session_id}}\",\n  \"message\": \"Yes, approved. Comment: within budget, approved by finance.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as VP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"vp_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Review Inbox",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"vp_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What approval requests are waiting for me?\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve \u2014 Turn 1 (state intent)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Approve the laptop purchase request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Yes, go ahead.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Requester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"requester_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Requester: Check Final Status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"requester_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What is the current status of my laptop purchase request?\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "9b. Delegation \u2014 Manager Delegates to VP",
+          "item": [
+            {
+              "name": "Login as Admin",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"admin_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Travel Approval Workflow \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"admin_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Create a single-step Travel Approval workflow where Manager is the sole approver.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Travel Approval Workflow \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{admin_session_id}}\",\n  \"message\": \"Yes, create it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Requester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"requester_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Travel Request \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"requester_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"I need to submit a travel request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Travel Request \u2014 Turn 2 (provide details)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Trip to New York next week for a client meeting, estimated $1,200. Use the Travel Approval workflow.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Travel Request \u2014 Turn 3 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Yes, submit it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Manager",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"manager_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Manager: Delegate to VP \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"manager_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"I am going on vacation. Delegate all my approvals to VP for the next 7 days.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Manager: Delegate to VP \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{manager_session_id}}\",\n  \"message\": \"Yes, create the delegation.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as VP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"vp_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Review Inbox (sees delegated request)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"vp_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What approvals are waiting for me?\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve Delegated Request \u2014 Turn 1 (state intent)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Approve the travel request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve Delegated Request \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Yes, approved.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Manager",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"manager_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Manager: List Delegations",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"manager_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Show me my active delegations.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Manager: Revoke Delegation \u2014 Turn 1 (state intent)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{manager_session_id}}\",\n  \"message\": \"Revoke the delegation to VP.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Manager: Revoke Delegation \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{manager_session_id}}\",\n  \"message\": \"Yes, revoke it.\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "9c. Group Approval \u2014 ALL_OF Finance Committee",
+          "item": [
+            {
+              "name": "Login as Admin",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"admin_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Finance Committee Group \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"admin_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Create an approval group called Finance Committee with Finance and VP as members.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Finance Committee Group \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{admin_session_id}}\",\n  \"message\": \"Yes, create the group and add both members.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create CapEx Workflow \u2014 Turn 1 (state intent)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{admin_session_id}}\",\n  \"message\": \"Create a Capital Expenditure workflow that requires ALL members of Finance Committee to approve (ALL_OF mode).\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create CapEx Workflow \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{admin_session_id}}\",\n  \"message\": \"Yes, create it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Requester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"requester_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit CapEx Request \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"requester_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Submit a capital expenditure request for new servers.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit CapEx Request \u2014 Turn 2 (provide details)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Vendor is Dell, cost $25,000, purpose is infrastructure upgrade. Use the Capital Expenditure workflow.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit CapEx Request \u2014 Turn 3 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Yes, submit it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Finance",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"finance_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Finance: Approve CapEx \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"finance_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What is in my inbox? Approve the server purchase request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Finance: Approve CapEx \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{finance_session_id}}\",\n  \"message\": \"Yes, approve it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as VP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"vp_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve CapEx \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"vp_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What is in my inbox? Approve the server purchase request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve CapEx \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Yes, approved.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Requester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"requester_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Requester: Check CapEx Status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"requester_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What is the status of my server purchase request?\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "9d. Parallel Approval \u2014 Manager & Finance in Parallel, then VP",
+          "item": [
+            {
+              "name": "Login as Admin",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"admin_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Parallel Workflow \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"admin_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Create a Parallel Approval workflow. Step 1: Manager and Finance approve in parallel (use parallelGroup \\\"finance-review\\\", same stepOrder 1). Step 2: VP does final approval.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Parallel Workflow \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{admin_session_id}}\",\n  \"message\": \"Yes, create it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Requester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"requester_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Software License Request \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"requester_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Submit a software license purchase request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Software License Request \u2014 Turn 2 (provide details)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Vendor is Adobe, cost $8,000, for the design team. Use the Parallel Approval workflow.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Software License Request \u2014 Turn 3 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Yes, submit it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Manager",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"manager_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Manager: Approve Parallel Step \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"manager_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What is in my inbox? Approve the software license request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Manager: Approve Parallel Step \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{manager_session_id}}\",\n  \"message\": \"Yes, approved.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Finance",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"finance_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Finance: Approve Parallel Step \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"finance_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What is in my inbox? Approve the software license request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Finance: Approve Parallel Step \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{finance_session_id}}\",\n  \"message\": \"Yes, approved.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as VP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"vp_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Final Approval \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"vp_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What is in my inbox? Approve the software license request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Final Approval \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Yes, go ahead.\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "9e. Escalation \u2014 Times Out to VP (60s with demo config)",
+          "item": [
+            {
+              "name": "Login as Admin",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"admin_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Escalation Workflow \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"admin_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Create an Urgent Purchase workflow with Manager as the approver at step 1. Set timeoutHours to 1 and escalate to VP if not approved in time.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create Escalation Workflow \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{admin_session_id}}\",\n  \"message\": \"Yes, create it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Login as Requester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"requester_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Urgent Request \u2014 Turn 1 (state intent)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"requester_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"Submit an urgent equipment purchase request.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Urgent Request \u2014 Turn 2 (provide details)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Vendor is HP, cost $5,000, for the operations team. Use the Urgent Purchase workflow.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Submit Urgent Request \u2014 Turn 3 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{requester_session_id}}\",\n  \"message\": \"Yes, submit it.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "\u23f3 Wait ~60 seconds for escalation to trigger (APP_ESCALATION_TIMEOUT_HOUR_IN_SECONDS=60)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/api/v1/requests?page=0&size=5",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "Login as VP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"vp_id\", r.userId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/auth/login",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Review Escalated Inbox",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const r = pm.response.json(); pm.environment.set(\"vp_session_id\", r.sessionId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": null,\n  \"message\": \"What approval requests have been escalated to me?\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve Escalated Request \u2014 Turn 1 (state intent)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Approve the urgent equipment purchase.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "VP: Approve Escalated Request \u2014 Turn 2 (confirm)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/api/v1/agent/chat",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{vp_session_id}}\",\n  \"message\": \"Yes, approved.\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json(); pm.environment.set(\"token\", r.token); pm.environment.set(\"admin_id\", r.userId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Agent Logs (Admin only)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/agent/logs?page=0&size=20",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
           }
         }
       ]

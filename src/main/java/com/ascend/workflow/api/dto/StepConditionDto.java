@@ -1,10 +1,11 @@
 package com.ascend.workflow.api.dto;
 
+import com.ascend.workflow.domain.model.ConditionOperator;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
 
 public record StepConditionDto(
         @NotBlank String fieldName,
-        @NotBlank @Pattern(regexp = "EQ|NEQ|GT|GTE|LT|LTE|IN|CONTAINS") String operator,
+        @NotNull ConditionOperator operator,
         @NotBlank String value
 ) {}

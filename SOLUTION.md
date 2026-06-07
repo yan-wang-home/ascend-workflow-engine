@@ -84,7 +84,7 @@ POST /api/v1/agent/chat
   AgentService          ← manages session, runs the tool loop
         │
         ├── AnthropicClient    ← WebClient calling api.anthropic.com/v1/messages
-        ├── ToolDefinitions    ← 8 tool schemas sent to Claude each turn
+        ├── ToolDefinitions    ← 14 tool schemas sent to Claude each turn
         └── AgentToolsService  ← dispatches tool calls to service layer
 ```
 
@@ -106,12 +106,18 @@ POST /api/v1/agent/chat
 | `get_audit_history` | Audit trail for a request |
 | `submit_request` | Creates a new approval request |
 | `make_decision` | Approves, rejects, or requests changes |
-| `create_workflow_template` | Creates a new workflow template |
+| `create_workflow_template` | Creates a new workflow template (supports conditions, parallel groups, escalation) |
 | `create_delegation` | Sets up a temporary delegation |
+| `list_users` | Lists all users with id/name/email/role — used to resolve approver UUIDs |
+| `list_groups` | Lists all approval groups — used to resolve group UUIDs |
+| `create_group` | Creates a new approval group |
+| `add_group_member` | Adds a user to an approval group |
+| `list_delegations` | Lists the caller's active delegations |
+| `revoke_delegation` | Permanently removes a delegation |
 
 ### Confirmation before write actions
 
-The system prompt instructs Claude to summarise intended write actions (`submit_request`, `make_decision`, `create_delegation`, `create_workflow_template`) and ask "Shall I proceed?" before calling the tool. The tool is only executed on the next user turn once confirmation is given.
+The system prompt instructs Claude to summarise intended write actions (`submit_request`, `make_decision`, `create_delegation`, `create_workflow_template`, `create_group`, `add_group_member`, `revoke_delegation`) and ask "Shall I proceed?" before calling the tool. The tool is only executed on the next user turn once confirmation is given.
 
 ### Observability
 

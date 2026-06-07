@@ -21,9 +21,10 @@ public class InstanceStep {
     private UUID id;
     private UUID instanceId;
     private UUID stepId;
+    private String name;
     private int stepOrder;
     private Integer parallelGroup;
-    private String status;  // PENDING | APPROVED | REJECTED | SKIPPED | ESCALATED
+    private InstanceStepStatus status;
     private OffsetDateTime startedAt;
     private OffsetDateTime completedAt;
     private OffsetDateTime escalatedAt;

@@ -30,18 +30,14 @@ public class ConditionEvaluator {
 
         try {
             return switch (condition.getOperator()) {
-                case "EQ"       -> fieldValue.equals(conditionValue);
-                case "NEQ"      -> !fieldValue.equals(conditionValue);
-                case "GT"       -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) > 0;
-                case "GTE"      -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) >= 0;
-                case "LT"       -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) < 0;
-                case "LTE"      -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) <= 0;
-                case "IN"       -> Arrays.asList(conditionValue.split(",")).contains(fieldValue);
-                case "CONTAINS" -> fieldValue.contains(conditionValue);
-                default         -> {
-                    log.warn("Unknown operator: {}", condition.getOperator());
-                    yield false;
-                }
+                case EQ       -> fieldValue.equals(conditionValue);
+                case NEQ      -> !fieldValue.equals(conditionValue);
+                case GT       -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) > 0;
+                case GTE      -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) >= 0;
+                case LT       -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) < 0;
+                case LTE      -> toBigDecimal(fieldValue).compareTo(toBigDecimal(conditionValue)) <= 0;
+                case IN       -> Arrays.asList(conditionValue.split(",")).contains(fieldValue);
+                case CONTAINS -> fieldValue.contains(conditionValue);
             };
         } catch (NumberFormatException e) {
             log.warn("Numeric comparison failed for field '{}': {}", condition.getFieldName(), e.getMessage());

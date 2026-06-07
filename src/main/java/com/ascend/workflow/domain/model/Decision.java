@@ -21,7 +21,7 @@ public class Decision {
     private UUID id;
     private UUID instanceStepId;
     private UUID approverId;
-    private String action;  // APPROVE | REJECT | REQUEST_CHANGES
+    private DecisionAction action;
     private String comment;
     private OffsetDateTime decidedAt;
 }

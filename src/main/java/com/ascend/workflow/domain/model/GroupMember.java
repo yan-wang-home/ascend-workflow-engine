@@ -7,22 +7,17 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("users")
-public class User {
+@Table("group_members")
+public class GroupMember {
 
     @Id
     private UUID id;
-    private String email;
-    private String passwordHash;
-    private String name;
-    private UserRole role;
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
+    private UUID groupId;
+    private UUID userId;
 }

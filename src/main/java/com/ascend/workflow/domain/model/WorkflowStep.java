@@ -23,9 +23,9 @@ public class WorkflowStep {
     private int stepOrder;
     private Integer parallelGroup;
     private String name;
-    private String approverType;   // USER | GROUP | ROLE
+    private ApproverType approverType;
     private String approverId;
-    private String approvalMode;   // ANY_OF | ALL_OF
+    private ApprovalMode approvalMode;
     private Integer timeoutHours;
     private UUID escalationUserId;
     private OffsetDateTime createdAt;

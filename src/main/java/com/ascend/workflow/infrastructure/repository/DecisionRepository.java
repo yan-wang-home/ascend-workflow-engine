@@ -12,4 +12,8 @@ public interface DecisionRepository extends ReactiveCrudRepository<Decision, UUI
     Flux<Decision> findByInstanceStepId(UUID instanceStepId);
 
     Mono<Boolean> existsByInstanceStepIdAndApproverId(UUID instanceStepId, UUID approverId);
+
+    @org.springframework.data.r2dbc.repository.Query(
+            "SELECT COUNT(*) FROM decisions WHERE instance_step_id = :instanceStepId AND action = 'APPROVE'")
+    Mono<Long> countApprovedByInstanceStepId(UUID instanceStepId);
 }

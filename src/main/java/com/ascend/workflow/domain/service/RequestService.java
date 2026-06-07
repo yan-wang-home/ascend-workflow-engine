@@ -1,8 +1,11 @@
 package com.ascend.workflow.domain.service;
 
+import com.ascend.workflow.api.dto.ResubmitRequestDto;
 import com.ascend.workflow.api.dto.SubmitRequestDto;
 import com.ascend.workflow.domain.model.InstanceStep;
+import com.ascend.workflow.domain.model.InstanceStepStatus;
 import com.ascend.workflow.domain.model.WorkflowInstance;
+import com.ascend.workflow.domain.model.WorkflowInstanceStatus;
 import com.ascend.workflow.domain.model.WorkflowStep;
 import com.ascend.workflow.infrastructure.repository.InstanceStepRepository;
 import com.ascend.workflow.infrastructure.repository.StepConditionRepository;
@@ -44,7 +47,7 @@ public class RequestService {
                             .templateId(request.templateId())
                             .requesterId(requesterId)
                             .title(request.title())
-                            .status("PENDING")
+                            .status(WorkflowInstanceStatus.PENDING)
                             .metadata(Json.of(metadataJson))
                             .currentStepOrder(1)
                             .createdAt(OffsetDateTime.now())
@@ -82,13 +85,14 @@ public class RequestService {
                         }
                     }
 
-                    String status = conditionsMet ? "PENDING" : "SKIPPED";
+                    InstanceStepStatus status = conditionsMet ? InstanceStepStatus.PENDING : InstanceStepStatus.SKIPPED;
                     OffsetDateTime startedAt = (conditionsMet && step.getStepOrder() == instance.getCurrentStepOrder())
                             ? OffsetDateTime.now() : null;
 
                     InstanceStep instanceStep = InstanceStep.builder()
                             .instanceId(instance.getId())
                             .stepId(step.getId())
+                            .name(step.getName())
                             .stepOrder(step.getStepOrder())
                             .parallelGroup(step.getParallelGroup())
                             .status(status)
@@ -122,14 +126,49 @@ public class RequestService {
                     if (!instance.getRequesterId().equals(requesterId)) {
                         return Mono.error(new SecurityException("Not authorized to cancel this request"));
                     }
-                    if (!instance.getStatus().equals("PENDING")) {
+                    if (instance.getStatus() != WorkflowInstanceStatus.PENDING) {
                         return Mono.error(new IllegalStateException("Only PENDING requests can be cancelled"));
                     }
-                    instance.setStatus("CANCELLED");
+                    instance.setStatus(WorkflowInstanceStatus.CANCELLED);
                     instance.setUpdatedAt(OffsetDateTime.now());
                     return instanceRepository.save(instance)
                             .flatMap(saved -> auditService.log(id, requesterId, "REQUEST_CANCELLED", Map.of())
                                     .thenReturn(saved));
+                });
+    }
+
+    public Mono<WorkflowInstance> resubmit(UUID instanceId, UUID requesterId, ResubmitRequestDto dto) {
+        return findById(instanceId)
+                .flatMap(instance -> {
+                    if (!instance.getRequesterId().equals(requesterId)) {
+                        return Mono.error(new SecurityException("Not authorized to resubmit this request"));
+                    }
+                    if (instance.getStatus() != WorkflowInstanceStatus.CHANGES_REQUESTED) {
+                        return Mono.error(new IllegalStateException(
+                                "Only CHANGES_REQUESTED requests can be resubmitted"));
+                    }
+                    if (dto.title() != null) {
+                        instance.setTitle(dto.title());
+                    }
+                    return updateMetadataIfProvided(instance, dto.metadata())
+                            .flatMap(updated -> {
+                                updated.setStatus(WorkflowInstanceStatus.PENDING);
+                                updated.setUpdatedAt(OffsetDateTime.now());
+                                return instanceRepository.save(updated);
+                            })
+                            .flatMap(saved -> auditService.log(instanceId, requesterId, "REQUEST_RESUBMITTED",
+                                    Map.of("title", saved.getTitle())).thenReturn(saved));
+                });
+    }
+
+    private Mono<WorkflowInstance> updateMetadataIfProvided(WorkflowInstance instance, Map<String, Object> metadata) {
+        if (metadata == null || metadata.isEmpty()) {
+            return Mono.just(instance);
+        }
+        return Mono.fromCallable(() -> objectMapper.writeValueAsString(metadata))
+                .map(json -> {
+                    instance.setMetadata(Json.of(json));
+                    return instance;
                 });
     }
 

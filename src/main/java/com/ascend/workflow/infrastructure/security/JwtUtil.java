@@ -1,5 +1,6 @@
 package com.ascend.workflow.infrastructure.security;
 
+import com.ascend.workflow.domain.model.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -25,11 +26,11 @@ public class JwtUtil {
         this.expirationMs = expirationMs;
     }
 
-    public String generate(UUID userId, String email, String role) {
+    public String generate(UUID userId, String email, UserRole role) {
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("email", email)
-                .claim("role", role)
+                .claim("role", role.name())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key)

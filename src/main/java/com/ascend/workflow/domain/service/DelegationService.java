@@ -53,8 +53,7 @@ public class DelegationService {
                     if (!delegation.getDelegatorId().equals(delegatorId)) {
                         return Mono.error(new SecurityException("Not authorized to revoke this delegation"));
                     }
-                    delegation.setActive(false);
-                    return delegationRepository.save(delegation).then();
+                    return delegationRepository.deleteById(delegationId);
                 });
     }
 }

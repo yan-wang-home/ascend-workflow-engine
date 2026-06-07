@@ -1,10 +1,7 @@
 package com.ascend.workflow.domain.service;
 
 import com.ascend.workflow.api.dto.DecisionRequest;
-import com.ascend.workflow.domain.model.Decision;
-import com.ascend.workflow.domain.model.InstanceStep;
-import com.ascend.workflow.domain.model.WorkflowInstance;
-import com.ascend.workflow.domain.model.WorkflowStep;
+import com.ascend.workflow.domain.model.*;
 import com.ascend.workflow.infrastructure.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,56 +36,74 @@ public class ApprovalService {
         return Flux.merge(
                 instanceRepository.findPendingForDirectApprover(userId, limit, offset),
                 instanceRepository.findPendingForGroupApprover(userId, limit, offset),
-                instanceRepository.findPendingForDelegate(userId, limit, offset)
+                instanceRepository.findPendingForDelegate(userId, limit, offset),
+                instanceRepository.findPendingForEscalatedApprover(userId, limit, offset)
         ).distinct(WorkflowInstance::getId);
     }
+
+    private record AuthResult(InstanceStep instanceStep, WorkflowStep workflowStep) {}
 
     public Mono<Decision> decide(UUID instanceId, UUID approverId, DecisionRequest request) {
         return instanceRepository.findById(instanceId)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Request not found: " + instanceId)))
                 .flatMap(instance -> {
-                    if (!instance.getStatus().equals("PENDING")) {
+                    if (instance.getStatus() != WorkflowInstanceStatus.PENDING
+                            && instance.getStatus() != WorkflowInstanceStatus.CHANGES_REQUESTED) {
                         return Mono.error(new IllegalStateException("Request is not pending"));
                     }
                     return verifyApproverAuthorization(instance, approverId)
-                            .flatMap(step -> recordDecision(instance, step, approverId, request));
+                            .flatMap(auth -> recordDecision(instance, auth.instanceStep(), auth.workflowStep(), approverId, request));
                 });
     }
 
-    private Mono<InstanceStep> verifyApproverAuthorization(WorkflowInstance instance, UUID approverId) {
+    private Mono<AuthResult> verifyApproverAuthorization(WorkflowInstance instance, UUID approverId) {
         return instanceStepRepository
-                .findByInstanceIdAndStepOrderAndStatus(instance.getId(), instance.getCurrentStepOrder(), "PENDING")
-                .switchIfEmpty(Mono.error(new IllegalStateException("No pending step found")))
+                .findByInstanceIdAndStepOrderAndStatus(instance.getId(), instance.getCurrentStepOrder(), InstanceStepStatus.PENDING)
                 .flatMap(instanceStep -> workflowStepRepository.findById(instanceStep.getStepId())
-                        .flatMap(workflowStep -> isAuthorized(workflowStep, approverId, instance.getTemplateId())
-                                .flatMap(authorized -> {
-                                    if (!authorized) {
-                                        return Mono.error(new SecurityException("Not authorized to approve this step"));
-                                    }
-                                    return Mono.just(instanceStep);
-                                })));
+                        .flatMap(workflowStep -> {
+                            Mono<Boolean> directAuth = isAuthorized(workflowStep, approverId, instance.getTemplateId());
+                            Mono<Boolean> escalationAuth = instanceStepRepository.existsEscalatedToUser(
+                                    instanceStep.getInstanceId(), instanceStep.getStepOrder(), approverId);
+                            return Mono.zip(directAuth, escalationAuth)
+                                    .filter(t -> t.getT1() || t.getT2())
+                                    .map(t -> new AuthResult(instanceStep, workflowStep));
+                        }))
+                .next()
+                .switchIfEmpty(Mono.error(new SecurityException("Not authorized to approve this step")));
     }
 
     private Mono<Boolean> isAuthorized(WorkflowStep step, UUID approverId, UUID templateId) {
         return switch (step.getApproverType()) {
-            case "USER" -> {
+            case USER -> {
                 boolean isDirect = step.getApproverId().equals(approverId.toString());
                 if (isDirect) yield Mono.just(true);
-                // Check if approverId is a delegate for the direct approver
                 yield delegationRepository
                         .findActiveDelegation(UUID.fromString(step.getApproverId()), templateId)
                         .map(d -> d.getDelegateId().equals(approverId))
                         .defaultIfEmpty(false);
             }
-            case "GROUP" -> groupMemberRepository
+            case GROUP -> groupMemberRepository
                     .existsByGroupIdAndUserId(UUID.fromString(step.getApproverId()), approverId);
-            case "ROLE"  -> Mono.just(true); // role already enforced by Spring Security
-            default      -> Mono.just(false);
+            case ROLE  -> Mono.just(true); // role already enforced by Spring Security
         };
     }
 
     private Mono<Decision> recordDecision(WorkflowInstance instance, InstanceStep instanceStep,
-                                           UUID approverId, DecisionRequest request) {
+                                           WorkflowStep workflowStep, UUID approverId, DecisionRequest request) {
+        // Guard: prevent a group member approving the same step twice in ALL_OF mode
+        if (request.action() == DecisionAction.APPROVE
+                && workflowStep.getApproverType() == ApproverType.GROUP
+                && workflowStep.getApprovalMode() == ApprovalMode.ALL_OF) {
+            return decisionRepository.existsByInstanceStepIdAndApproverId(instanceStep.getId(), approverId)
+                    .flatMap(already -> already
+                            ? Mono.error(new IllegalStateException("You have already approved this step"))
+                            : doRecord(instance, instanceStep, workflowStep, approverId, request));
+        }
+        return doRecord(instance, instanceStep, workflowStep, approverId, request);
+    }
+
+    private Mono<Decision> doRecord(WorkflowInstance instance, InstanceStep instanceStep,
+                                     WorkflowStep workflowStep, UUID approverId, DecisionRequest request) {
         Decision decision = Decision.builder()
                 .instanceStepId(instanceStep.getId())
                 .approverId(approverId)
@@ -98,26 +113,47 @@ public class ApprovalService {
                 .build();
 
         return decisionRepository.save(decision)
-                .flatMap(saved -> advanceWorkflow(instance, instanceStep, request.action())
-                        .then(auditService.log(instance.getId(), approverId, "DECISION_MADE",
-                                Map.of("action", request.action(), "stepOrder", instanceStep.getStepOrder(),
-                                        "comment", request.comment() != null ? request.comment() : "")))
-                        .thenReturn(saved));
+                .flatMap(saved -> allMembersApproved(instanceStep, workflowStep, request.action())
+                        .flatMap(shouldAdvance -> {
+                            if (!shouldAdvance) return Mono.just(saved); // ALL_OF: waiting for remaining members
+                            return advanceWorkflow(instance, instanceStep, request.action()).thenReturn(saved);
+                        })
+                        .flatMap(saved2 -> auditService.log(instance.getId(), approverId, "DECISION_MADE",
+                                Map.of("action", request.action().name(), "stepOrder", instanceStep.getStepOrder(),
+                                        "comment", request.comment() != null ? request.comment() : ""))
+                                .thenReturn(saved2)));
     }
 
-    private Mono<Void> advanceWorkflow(WorkflowInstance instance, InstanceStep currentStep, String action) {
-        return switch (action) {
-            case "REJECT" -> closeInstance(instance, "REJECTED")
-                    .then(markStepComplete(currentStep, "REJECTED"));
+    // Returns true when the workflow should advance: always for non-ALL_OF, only when all group members approved for ALL_OF
+    private Mono<Boolean> allMembersApproved(InstanceStep instanceStep, WorkflowStep workflowStep, DecisionAction action) {
+        if (action != DecisionAction.APPROVE) return Mono.just(true);
+        if (workflowStep.getApproverType() != ApproverType.GROUP) return Mono.just(true);
+        if (workflowStep.getApprovalMode() != ApprovalMode.ALL_OF) return Mono.just(true);
 
-            case "APPROVE" -> markStepComplete(currentStep, "APPROVED")
+        UUID groupId = UUID.fromString(workflowStep.getApproverId());
+        return Mono.zip(
+                groupMemberRepository.countByGroupId(groupId),
+                decisionRepository.countApprovedByInstanceStepId(instanceStep.getId())
+        ).map(t -> t.getT2() >= t.getT1());
+    }
+
+    private Mono<Void> advanceWorkflow(WorkflowInstance instance, InstanceStep currentStep, DecisionAction action) {
+        return switch (action) {
+            case REJECT -> closeInstance(instance, WorkflowInstanceStatus.REJECTED)
+                    .then(markStepComplete(currentStep, InstanceStepStatus.REJECTED));
+
+            case APPROVE -> markStepComplete(currentStep, InstanceStepStatus.APPROVED)
                     .then(checkParallelGroupComplete(instance, currentStep))
                     .flatMap(groupComplete -> {
                         if (!groupComplete) return Mono.empty();
                         return advanceToNextStep(instance);
                     });
 
-            default -> Mono.empty(); // REQUEST_CHANGES — leave step pending for re-review
+            case REQUEST_CHANGES -> {
+                instance.setStatus(WorkflowInstanceStatus.CHANGES_REQUESTED);
+                instance.setUpdatedAt(OffsetDateTime.now());
+                yield instanceRepository.save(instance).then();
+            }
         };
     }
 
@@ -126,18 +162,20 @@ public class ApprovalService {
 
         return instanceStepRepository.findByInstanceIdAndStepOrder(instance.getId(), approvedStep.getStepOrder())
                 .filter(s -> approvedStep.getParallelGroup().equals(s.getParallelGroup()))
-                .all(s -> s.getId().equals(approvedStep.getId()) || s.getStatus().equals("APPROVED") || s.getStatus().equals("SKIPPED"));
+                .all(s -> s.getId().equals(approvedStep.getId())
+                        || s.getStatus() == InstanceStepStatus.APPROVED
+                        || s.getStatus() == InstanceStepStatus.SKIPPED);
     }
 
     private Mono<Void> advanceToNextStep(WorkflowInstance instance) {
         int nextOrder = instance.getCurrentStepOrder() + 1;
 
         return instanceStepRepository.findByInstanceIdOrderByStepOrderAsc(instance.getId())
-                .filter(s -> s.getStepOrder() == nextOrder && s.getStatus().equals("PENDING"))
+                .filter(s -> s.getStepOrder() == nextOrder && s.getStatus() == InstanceStepStatus.PENDING)
                 .collectList()
                 .flatMap(nextSteps -> {
                     if (nextSteps.isEmpty()) {
-                        return closeInstance(instance, "APPROVED");
+                        return closeInstance(instance, WorkflowInstanceStatus.APPROVED);
                     }
                     instance.setCurrentStepOrder(nextOrder);
                     instance.setUpdatedAt(OffsetDateTime.now());
@@ -153,13 +191,13 @@ public class ApprovalService {
                 });
     }
 
-    private Mono<Void> closeInstance(WorkflowInstance instance, String finalStatus) {
+    private Mono<Void> closeInstance(WorkflowInstance instance, WorkflowInstanceStatus finalStatus) {
         instance.setStatus(finalStatus);
         instance.setUpdatedAt(OffsetDateTime.now());
         return instanceRepository.save(instance).then();
     }
 
-    private Mono<Void> markStepComplete(InstanceStep step, String status) {
+    private Mono<Void> markStepComplete(InstanceStep step, InstanceStepStatus status) {
         escalationService.cancelEscalation(step.getId());
         step.setStatus(status);
         step.setCompletedAt(OffsetDateTime.now());

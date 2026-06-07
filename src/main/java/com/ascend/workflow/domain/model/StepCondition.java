@@ -20,6 +20,6 @@ public class StepCondition {
     private UUID id;
     private UUID stepId;
     private String fieldName;
-    private String operator;  // EQ | NEQ | GT | GTE | LT | LTE | IN | CONTAINS
+    private ConditionOperator operator;
     private String value;
 }

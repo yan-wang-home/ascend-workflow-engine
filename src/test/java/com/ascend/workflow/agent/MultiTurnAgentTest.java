@@ -5,6 +5,7 @@ import com.ascend.workflow.api.dto.ChatResponse;
 import com.ascend.workflow.api.dto.LoginRequest;
 import com.ascend.workflow.api.dto.LoginResponse;
 import com.ascend.workflow.api.dto.RegisterRequest;
+import com.ascend.workflow.domain.model.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -42,7 +43,7 @@ class MultiTurnAgentTest {
         webTestClient.post().uri("/api/v1/auth/register")
                 .bodyValue(new RegisterRequest(
                         "agent-test-" + UUID.randomUUID() + "@example.com",
-                        "password123", "Agent Tester", "REQUESTER"))
+                        "password123", "Agent Tester", UserRole.REQUESTER))
                 .exchange().expectStatus().isCreated();
 
         // For simplicity in test, we login with a seeded user

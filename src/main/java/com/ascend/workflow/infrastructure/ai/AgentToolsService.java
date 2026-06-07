@@ -1,9 +1,12 @@
 package com.ascend.workflow.infrastructure.ai;
 
 import com.ascend.workflow.api.dto.*;
+import com.ascend.workflow.domain.model.DecisionAction;
 import com.ascend.workflow.domain.model.WorkflowInstance;
 import com.ascend.workflow.domain.model.WorkflowTemplate;
 import com.ascend.workflow.domain.service.*;
+import com.ascend.workflow.infrastructure.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Executes agent tool calls dispatched from AgentService.
- * All tools go through the service layer — no direct DB access.
- * Returns structured strings so Claude can reason about results.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,6 +29,8 @@ public class AgentToolsService {
     private final RequestService requestService;
     private final ApprovalService approvalService;
     private final DelegationService delegationService;
+    private final GroupService groupService;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     public String dispatch(String toolName, JsonNode input, UUID userId) {
@@ -44,6 +44,12 @@ public class AgentToolsService {
                 case "make_decision"            -> makeDecision(input, userId);
                 case "create_workflow_template" -> createWorkflowTemplate(input, userId);
                 case "create_delegation"        -> createDelegation(input, userId);
+                case "list_users"               -> listUsers();
+                case "list_groups"              -> listGroups();
+                case "create_group"             -> createGroup(input);
+                case "add_group_member"         -> addGroupMember(input);
+                case "list_delegations"         -> listDelegations(userId);
+                case "revoke_delegation"        -> revokeDelegation(input, userId);
                 default                         -> error("Unknown tool: " + toolName);
             };
         } catch (Exception e) {
@@ -91,12 +97,12 @@ public class AgentToolsService {
 
     private String makeDecision(JsonNode input, UUID approverId) throws Exception {
         UUID requestId = UUID.fromString(input.get("requestId").asText());
-        String action = input.get("action").asText();
+        DecisionAction action = DecisionAction.valueOf(input.get("action").asText().toUpperCase());
         String comment = input.has("comment") ? input.get("comment").asText() : null;
         DecisionRequest dto = new DecisionRequest(action, comment);
         var decision = approvalService.decide(requestId, approverId, dto).block();
-        return ok(Map.of("decisionId", decision.getId(), "action", action,
-                "message", "Decision recorded: " + action + " on request " + requestId));
+        return ok(Map.of("decisionId", decision.getId(), "action", action.name(),
+                "message", "Decision recorded: " + action.name() + " on request " + requestId));
     }
 
     private String createWorkflowTemplate(JsonNode input, UUID createdBy) throws Exception {
@@ -116,6 +122,46 @@ public class AgentToolsService {
         var delegation = delegationService.create(dto, delegatorId).block();
         return ok(Map.of("delegationId", delegation.getId(),
                 "message", "Delegation created successfully until " + endsAt));
+    }
+
+    private String listGroups() throws Exception {
+        var groups = groupService.findAll().collectList().block();
+        return ok(Map.of("groups", groups, "count", groups.size()));
+    }
+
+    private String createGroup(JsonNode input) throws Exception {
+        String name = input.get("name").asText();
+        String description = input.has("description") ? input.get("description").asText() : "";
+        var group = groupService.createGroup(name, description).block();
+        return ok(Map.of("groupId", group.getId(), "name", group.getName(),
+                "message", "Group '" + group.getName() + "' created successfully"));
+    }
+
+    private String addGroupMember(JsonNode input) throws Exception {
+        UUID groupId = UUID.fromString(input.get("groupId").asText());
+        UUID userId = UUID.fromString(input.get("userId").asText());
+        var member = groupService.addMember(groupId, userId).block();
+        return ok(Map.of("groupId", member.getGroupId(), "userId", member.getUserId(),
+                "message", "User added to group successfully"));
+    }
+
+    private String listDelegations(UUID delegatorId) throws Exception {
+        var delegations = delegationService.findByDelegator(delegatorId, PageRequest.of(0, 50)).collectList().block();
+        return ok(Map.of("delegations", delegations, "count", delegations.size()));
+    }
+
+    private String revokeDelegation(JsonNode input, UUID delegatorId) throws Exception {
+        UUID delegationId = UUID.fromString(input.get("delegationId").asText());
+        delegationService.revoke(delegationId, delegatorId).block();
+        return ok(Map.of("message", "Delegation " + delegationId + " revoked successfully"));
+    }
+
+    private String listUsers() throws Exception {
+        var users = userRepository.findAll()
+                .filter(u -> !u.getId().toString().equals("00000000-0000-0000-0000-000000000001"))
+                .map(u -> Map.of("id", u.getId(), "name", u.getName(), "email", u.getEmail(), "role", u.getRole()))
+                .collectList().block();
+        return ok(Map.of("users", users, "count", users.size()));
     }
 
     private String ok(Map<String, Object> data) throws Exception {

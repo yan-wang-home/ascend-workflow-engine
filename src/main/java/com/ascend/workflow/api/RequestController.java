@@ -1,12 +1,15 @@
 package com.ascend.workflow.api;
 
 import com.ascend.workflow.api.dto.PageResponse;
+import com.ascend.workflow.api.dto.ResubmitRequestDto;
 import com.ascend.workflow.api.dto.SubmitRequestDto;
 import com.ascend.workflow.domain.model.AuditTrail;
+import com.ascend.workflow.domain.model.Decision;
 import com.ascend.workflow.domain.model.InstanceStep;
 import com.ascend.workflow.domain.model.WorkflowInstance;
 import com.ascend.workflow.domain.service.RequestService;
 import com.ascend.workflow.infrastructure.repository.AuditTrailRepository;
+import com.ascend.workflow.infrastructure.repository.DecisionRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +34,7 @@ public class RequestController {
 
     private final RequestService requestService;
     private final AuditTrailRepository auditTrailRepository;
+    private final DecisionRepository decisionRepository;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -54,10 +58,13 @@ public class RequestController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get request details including steps")
+    @Operation(summary = "Get request details including steps and their decisions")
     public Mono<WorkflowInstanceDetail> getById(@PathVariable UUID id) {
         return requestService.findById(id)
-                .flatMap(instance -> requestService.findStepsByInstanceId(id).collectList()
+                .flatMap(instance -> requestService.findStepsByInstanceId(id)
+                        .flatMap(step -> decisionRepository.findByInstanceStepId(step.getId()).collectList()
+                                .map(decisions -> new StepWithDecisions(step, decisions)))
+                        .collectList()
                         .map(steps -> new WorkflowInstanceDetail(instance, steps)));
     }
 
@@ -73,6 +80,15 @@ public class RequestController {
                 .map(t -> PageResponse.of(t.getT1(), page, size, t.getT2()));
     }
 
+    @PostMapping("/{id}/resubmit")
+    @Operation(summary = "Resubmit a request after changes were requested by an approver")
+    public Mono<WorkflowInstance> resubmit(@PathVariable UUID id,
+                                            @RequestBody(required = false) ResubmitRequestDto dto,
+                                            Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
+        return requestService.resubmit(id, userId, dto != null ? dto : new ResubmitRequestDto(null, null));
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Cancel a pending request")
@@ -81,5 +97,6 @@ public class RequestController {
         return requestService.cancel(id, userId).then();
     }
 
-    public record WorkflowInstanceDetail(WorkflowInstance instance, List<InstanceStep> steps) {}
+    public record StepWithDecisions(InstanceStep step, List<Decision> decisions) {}
+    public record WorkflowInstanceDetail(WorkflowInstance instance, List<StepWithDecisions> steps) {}
 }

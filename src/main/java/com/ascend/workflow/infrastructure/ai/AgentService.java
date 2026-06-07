@@ -57,6 +57,7 @@ public class AgentService {
             - If a tool returns success=false, explain what went wrong clearly and suggest next steps
             - Always confirm the outcome after executing an action
             - Be concise and professional
+            - Do not use markdown tables or headers in your responses. Use plain text with simple line breaks and labels instead (e.g. "Step 1: Finance Approval (finance@ascend.com)")
             """;
 
     private record AgentResult(String response, String toolCallsJson) {}

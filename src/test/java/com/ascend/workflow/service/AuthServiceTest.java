@@ -3,6 +3,7 @@ package com.ascend.workflow.service;
 import com.ascend.workflow.api.dto.LoginRequest;
 import com.ascend.workflow.api.dto.RegisterRequest;
 import com.ascend.workflow.domain.model.User;
+import com.ascend.workflow.domain.model.UserRole;
 import com.ascend.workflow.domain.service.AuthService;
 import com.ascend.workflow.infrastructure.repository.UserRepository;
 import com.ascend.workflow.infrastructure.security.JwtUtil;
@@ -38,7 +39,7 @@ class AuthServiceTest {
                 .email("test@example.com")
                 .passwordHash("hashed")
                 .name("Test User")
-                .role("REQUESTER")
+                .role(UserRole.REQUESTER)
                 .build();
     }
 
@@ -49,7 +50,7 @@ class AuthServiceTest {
         when(userRepository.save(any())).thenReturn(Mono.just(testUser));
 
         StepVerifier.create(authService.register(
-                        new RegisterRequest("test@example.com", "password", "Test User", "REQUESTER")))
+                        new RegisterRequest("test@example.com", "password", "Test User", UserRole.REQUESTER)))
                 .expectNextMatches(u -> u.getEmail().equals("test@example.com"))
                 .verifyComplete();
     }
@@ -59,7 +60,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(Mono.just(true));
 
         StepVerifier.create(authService.register(
-                        new RegisterRequest("test@example.com", "password", "Test User", "REQUESTER")))
+                        new RegisterRequest("test@example.com", "password", "Test User", UserRole.REQUESTER)))
                 .expectError(IllegalArgumentException.class)
                 .verify();
     }
@@ -68,7 +69,7 @@ class AuthServiceTest {
     void login_success() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Mono.just(testUser));
         when(passwordEncoder.matches("password", "hashed")).thenReturn(true);
-        when(jwtUtil.generate(any(), anyString(), anyString())).thenReturn("jwt-token");
+        when(jwtUtil.generate(any(), anyString(), any(UserRole.class))).thenReturn("jwt-token");
 
         StepVerifier.create(authService.login(new LoginRequest("test@example.com", "password")))
                 .expectNextMatches(r -> r.token().equals("jwt-token"))

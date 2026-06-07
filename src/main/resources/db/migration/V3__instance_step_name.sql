@@ -1,0 +1,1 @@
+ALTER TABLE instance_steps ADD COLUMN name VARCHAR(255);

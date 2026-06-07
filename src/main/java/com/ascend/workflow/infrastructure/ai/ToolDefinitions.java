@@ -49,7 +49,31 @@ public class ToolDefinitions {
 
                 tool("create_delegation",
                         "Temporarily delegate approval authority to another user. Only call after explicit user confirmation",
-                        schemaForDelegation())
+                        schemaForDelegation()),
+
+                tool("list_users",
+                        "List all registered users with their id, name, email, and role. Use this to look up approver UUIDs when creating workflow templates",
+                        schema()),
+
+                tool("list_groups",
+                        "List all approval groups with their id, name, and description. Use this to look up group UUIDs when creating group-based workflow templates",
+                        schema()),
+
+                tool("create_group",
+                        "Create a new approval group. Only call after explicit user confirmation",
+                        schema("name", "string", "Group name", "description", "string", "What this group is used for")),
+
+                tool("add_group_member",
+                        "Add a user to an approval group. Only call after explicit user confirmation",
+                        schema("groupId", "string", "UUID of the group", "userId", "string", "UUID of the user to add")),
+
+                tool("list_delegations",
+                        "List all delegations created by the current user",
+                        schema()),
+
+                tool("revoke_delegation",
+                        "Revoke (permanently delete) a delegation. Only call after explicit user confirmation",
+                        schema("delegationId", "string", "UUID of the delegation to revoke"))
         );
     }
 
@@ -111,7 +135,13 @@ public class ToolDefinitions {
         ObjectNode props = mapper.createObjectNode();
         props.set("name", mapper.createObjectNode().put("type", "string").put("description", "Template name"));
         props.set("description", mapper.createObjectNode().put("type", "string").put("description", "What this workflow is used for"));
-        props.set("steps", mapper.createObjectNode().put("type", "array").put("description", "List of approval steps with stepOrder, name, approverType, approverId, approvalMode, and optional conditions"));
+        props.set("steps", mapper.createObjectNode().put("type", "array").put("description",
+                "List of approval steps. Each step: stepOrder (int), name (string), approverType (USER|GROUP|ROLE), " +
+                "approverId (UUID of user or group), approvalMode (ANY_OF|ALL_OF, for GROUP only), " +
+                "parallelGroup (string tag — steps with same stepOrder and parallelGroup run in parallel), " +
+                "timeoutHours (int, optional — escalate after this many hours), " +
+                "escalationUserId (UUID, optional — who to escalate to), " +
+                "conditions (array of {field, operator, value} — skip step if conditions not met)"));
         schema.set("properties", props);
         schema.set("required", mapper.createArrayNode().add("name").add("steps"));
         return schema;

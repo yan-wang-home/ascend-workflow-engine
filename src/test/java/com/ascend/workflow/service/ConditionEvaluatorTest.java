@@ -1,5 +1,6 @@
 package com.ascend.workflow.service;
 
+import com.ascend.workflow.domain.model.ConditionOperator;
 import com.ascend.workflow.domain.model.StepCondition;
 import com.ascend.workflow.domain.service.ConditionEvaluator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -89,7 +90,7 @@ class ConditionEvaluatorTest {
                 .id(UUID.randomUUID())
                 .stepId(UUID.randomUUID())
                 .fieldName(field)
-                .operator(operator)
+                .operator(ConditionOperator.valueOf(operator))
                 .value(value)
                 .build();
     }

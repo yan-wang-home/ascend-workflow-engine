@@ -65,6 +65,7 @@ src/main/java/com/ascend/workflow/
 | `DB_USERNAME` | `postgres` | Database user |
 | `DB_PASSWORD` | `postgres` | Database password |
 | `JWT_SECRET` | _(built-in default)_ | HS256 signing secret (min 256 bits) |
+| `APP_ESCALATION_TIMEOUT_HOUR_IN_SECONDS` | `3600` | Seconds per `timeoutHours` unit. Set to `60` to make 1-hour escalation fire in 60 seconds for demos |
 
 ## Demo with Postman
 
@@ -73,3 +74,13 @@ Import both files from the `postman/` directory:
 2. `Ascend_Local.postman_environment.json` — local environment variables
 
 The collection auto-captures the JWT token after login and propagates `requestId`, `templateId`, and other IDs between requests.
+
+## Resetting the Database
+
+`cleanup.sql` in the repo root truncates all data tables in FK-safe order and re-seeds the system user. Schema and Flyway migration history are preserved.
+
+```bash
+psql -U postgres < cleanup.sql
+# or via Docker:
+docker exec -i ascend-postgres psql -U postgres < cleanup.sql
+```

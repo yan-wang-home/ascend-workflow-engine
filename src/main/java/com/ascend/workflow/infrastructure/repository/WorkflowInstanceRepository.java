@@ -15,6 +15,8 @@ public interface WorkflowInstanceRepository extends ReactiveCrudRepository<Workf
 
     Mono<Long> countByRequesterId(UUID requesterId);
 
+    Mono<Long> countByTemplateId(UUID templateId);
+
     // Instances where user is a direct approver on the current pending step
     @Query("""
         SELECT DISTINCT wi.* FROM workflow_instances wi
@@ -65,4 +67,24 @@ public interface WorkflowInstanceRepository extends ReactiveCrudRepository<Workf
         LIMIT :limit OFFSET :offset
         """)
     Flux<WorkflowInstance> findPendingForDelegate(UUID userId, int limit, int offset);
+
+    // Instances escalated to this user — a PENDING step exists where a sibling ESCALATED step
+    // at the same (instance, step_order) has escalated_to_user_id = this user
+    @Query("""
+        SELECT DISTINCT wi.* FROM workflow_instances wi
+        JOIN instance_steps ist ON ist.instance_id = wi.id
+        WHERE wi.status = 'PENDING'
+          AND ist.status = 'PENDING'
+          AND ist.step_order = wi.current_step_order
+          AND EXISTS (
+              SELECT 1 FROM instance_steps esc
+              WHERE esc.instance_id = ist.instance_id
+                AND esc.step_order = ist.step_order
+                AND esc.status = 'ESCALATED'
+                AND esc.escalated_to_user_id = :userId
+          )
+        ORDER BY wi.created_at ASC
+        LIMIT :limit OFFSET :offset
+        """)
+    Flux<WorkflowInstance> findPendingForEscalatedApprover(UUID userId, int limit, int offset);
 }

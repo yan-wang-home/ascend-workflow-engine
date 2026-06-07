@@ -1,6 +1,7 @@
 package com.ascend.workflow.domain.service;
 
 import com.ascend.workflow.domain.model.InstanceStep;
+import com.ascend.workflow.domain.model.InstanceStepStatus;
 import com.ascend.workflow.domain.model.WorkflowStep;
 import com.ascend.workflow.infrastructure.repository.InstanceStepRepository;
 import com.ascend.workflow.infrastructure.repository.WorkflowInstanceRepository;
@@ -65,9 +66,9 @@ public class EscalationService {
 
         // Re-fetch to guard against race with a concurrent decision
         instanceStepRepository.findById(step.getId())
-                .filter(fresh -> "PENDING".equals(fresh.getStatus()) && fresh.getEscalatedAt() == null)
+                .filter(fresh -> fresh.getStatus() == InstanceStepStatus.PENDING && fresh.getEscalatedAt() == null)
                 .flatMap(fresh -> {
-                    fresh.setStatus("ESCALATED");
+                    fresh.setStatus(InstanceStepStatus.ESCALATED);
                     fresh.setEscalatedAt(OffsetDateTime.now());
                     fresh.setEscalatedToUserId(escalateTo);
                     fresh.setCompletedAt(OffsetDateTime.now());
@@ -75,15 +76,15 @@ public class EscalationService {
                     InstanceStep escalatedStep = InstanceStep.builder()
                             .instanceId(fresh.getInstanceId())
                             .stepId(fresh.getStepId())
+                            .name(fresh.getName())
                             .stepOrder(fresh.getStepOrder())
                             .parallelGroup(fresh.getParallelGroup())
-                            .status("PENDING")
+                            .status(InstanceStepStatus.PENDING)
                             .startedAt(OffsetDateTime.now())
                             .build();
 
                     return instanceStepRepository.save(fresh)
                             .then(instanceStepRepository.save(escalatedStep))
-                            .doOnSuccess(saved -> scheduleEscalation(saved, workflowStep))
                             .then(instanceRepository.findById(fresh.getInstanceId()))
                             .flatMap(instance -> auditService.log(
                                     instance.getId(), SYSTEM_USER_ID, "STEP_ESCALATED",

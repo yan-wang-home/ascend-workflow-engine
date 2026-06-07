@@ -1,9 +1,9 @@
 package com.ascend.workflow.api.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import com.ascend.workflow.domain.model.DecisionAction;
+import jakarta.validation.constraints.NotNull;
 
 public record DecisionRequest(
-        @NotBlank @Pattern(regexp = "APPROVE|REJECT|REQUEST_CHANGES") String action,
+        @NotNull DecisionAction action,
         String comment
 ) {}

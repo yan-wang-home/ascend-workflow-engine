@@ -3,10 +3,14 @@ package com.ascend.workflow.domain.service;
 import com.ascend.workflow.api.dto.CreateWorkflowRequest;
 import com.ascend.workflow.api.dto.StepConditionDto;
 import com.ascend.workflow.api.dto.WorkflowStepDto;
+import com.ascend.workflow.domain.model.ApproverType;
 import com.ascend.workflow.domain.model.StepCondition;
 import com.ascend.workflow.domain.model.WorkflowStep;
 import com.ascend.workflow.domain.model.WorkflowTemplate;
 import com.ascend.workflow.infrastructure.repository.StepConditionRepository;
+import com.ascend.workflow.infrastructure.repository.UserGroupRepository;
+import com.ascend.workflow.infrastructure.repository.UserRepository;
+import com.ascend.workflow.infrastructure.repository.WorkflowInstanceRepository;
 import com.ascend.workflow.infrastructure.repository.WorkflowStepRepository;
 import com.ascend.workflow.infrastructure.repository.WorkflowTemplateRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +30,36 @@ public class WorkflowService {
     private final WorkflowTemplateRepository templateRepository;
     private final WorkflowStepRepository stepRepository;
     private final StepConditionRepository conditionRepository;
+    private final WorkflowInstanceRepository instanceRepository;
+    private final UserRepository userRepository;
+    private final UserGroupRepository userGroupRepository;
+
+    private Mono<Void> validateSteps(java.util.List<WorkflowStepDto> steps) {
+        return Flux.fromIterable(steps)
+                .flatMap(step -> {
+                    if (step.approverType() == ApproverType.ROLE) return Mono.empty();
+                    UUID id;
+                    try {
+                        id = UUID.fromString(step.approverId());
+                    } catch (IllegalArgumentException e) {
+                        return Mono.error(new IllegalArgumentException(
+                                "Step '" + step.name() + "': approverId must be a valid UUID when approverType is "
+                                        + step.approverType()));
+                    }
+                    return switch (step.approverType()) {
+                        case USER -> userRepository.existsById(id)
+                                .flatMap(exists -> exists ? Mono.empty()
+                                        : Mono.error(new IllegalArgumentException(
+                                                "Step '" + step.name() + "': user " + id + " does not exist")));
+                        case GROUP -> userGroupRepository.existsById(id)
+                                .flatMap(exists -> exists ? Mono.empty()
+                                        : Mono.error(new IllegalArgumentException(
+                                                "Step '" + step.name() + "': group " + id + " does not exist")));
+                        case ROLE -> Mono.empty();
+                    };
+                })
+                .then();
+    }
 
     public Mono<WorkflowTemplate> create(CreateWorkflowRequest request, UUID createdBy) {
         WorkflowTemplate template = WorkflowTemplate.builder()
@@ -37,7 +71,8 @@ public class WorkflowService {
                 .updatedAt(OffsetDateTime.now())
                 .build();
 
-        return templateRepository.save(template)
+        return validateSteps(request.steps())
+                .then(templateRepository.save(template))
                 .flatMap(saved -> saveSteps(saved.getId(), request.steps()).then(Mono.just(saved)));
     }
 
@@ -88,8 +123,10 @@ public class WorkflowService {
     }
 
     public Mono<WorkflowTemplate> update(UUID id, CreateWorkflowRequest request, UUID userId) {
-        return findById(id)
+        return validateSteps(request.steps())
+                .then(findById(id))
                 .flatMap(template -> {
+
                     template.setName(request.name());
                     template.setDescription(request.description());
                     template.setUpdatedAt(OffsetDateTime.now());
@@ -104,11 +141,22 @@ public class WorkflowService {
 
     public Mono<Void> delete(UUID id) {
         return findById(id)
-                .flatMap(template -> {
-                    template.setActive(false);
-                    template.setUpdatedAt(OffsetDateTime.now());
-                    return templateRepository.save(template).then();
-                });
+                .flatMap(template -> instanceRepository.countByTemplateId(id)
+                        .flatMap(count -> {
+                            if (count == 0) {
+                                // No instances — hard delete steps, conditions, and template
+                                return stepRepository.findByTemplateIdOrderByStepOrderAsc(id)
+                                        .flatMap(step -> conditionRepository.findByStepId(step.getId())
+                                                .flatMap(conditionRepository::delete)
+                                                .then(stepRepository.delete(step)))
+                                        .then(templateRepository.delete(template));
+                            } else {
+                                // Instances exist — soft delete to preserve history
+                                template.setActive(false);
+                                template.setUpdatedAt(OffsetDateTime.now());
+                                return templateRepository.save(template).then();
+                            }
+                        }));
     }
 
     public Flux<WorkflowStep> findStepsByTemplateId(UUID templateId) {

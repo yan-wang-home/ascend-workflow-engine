@@ -23,7 +23,7 @@ public class WorkflowInstance {
     private UUID templateId;
     private UUID requesterId;
     private String title;
-    private String status;  // PENDING | APPROVED | REJECTED | CANCELLED
+    private WorkflowInstanceStatus status;
     private Json metadata;
     private int currentStepOrder;
     private OffsetDateTime createdAt;

@@ -62,6 +62,9 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.38'
     annotationProcessor 'org.projectlombok:lombok:1.18.38'
 
+    // Netty native DNS resolver for macOS (Apple Silicon)
+    runtimeOnly 'io.netty:netty-resolver-dns-native-macos::osx-aarch_64'
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
@@ -72,7 +75,17 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+def nettyJvmArgs = [
+    '--enable-native-access=ALL-UNNAMED',
+    '--sun-misc-unsafe-memory-access=allow',
+    '-XX:+EnableDynamicAgentLoading'
+]
+
+bootRun {
+    jvmArgs nettyJvmArgs
+}
+
 tasks.named('test') {
     useJUnitPlatform()
-    jvmArgs '-XX:+EnableDynamicAgentLoading'
+    jvmArgs nettyJvmArgs
 }

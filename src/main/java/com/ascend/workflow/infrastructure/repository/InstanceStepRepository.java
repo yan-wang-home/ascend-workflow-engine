@@ -1,6 +1,7 @@
 package com.ascend.workflow.infrastructure.repository;
 
 import com.ascend.workflow.domain.model.InstanceStep;
+import com.ascend.workflow.domain.model.InstanceStepStatus;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
@@ -14,7 +15,18 @@ public interface InstanceStepRepository extends ReactiveCrudRepository<InstanceS
 
     Flux<InstanceStep> findByInstanceIdAndStepOrder(UUID instanceId, int stepOrder);
 
-    Mono<InstanceStep> findByInstanceIdAndStepOrderAndStatus(UUID instanceId, int stepOrder, String status);
+    Flux<InstanceStep> findByInstanceIdAndStepOrderAndStatus(UUID instanceId, int stepOrder, InstanceStepStatus status);
+
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM instance_steps
+            WHERE instance_id = :instanceId
+              AND step_order = :stepOrder
+              AND status = 'ESCALATED'
+              AND escalated_to_user_id = :userId
+        )
+        """)
+    Mono<Boolean> existsEscalatedToUser(UUID instanceId, int stepOrder, UUID userId);
 
     // Used by escalation scheduler: PENDING steps past their timeout with no escalation yet
     @Query("""

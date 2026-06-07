@@ -2,6 +2,7 @@ package com.ascend.workflow.api;
 
 import com.ascend.workflow.api.dto.CreateWorkflowRequest;
 import com.ascend.workflow.api.dto.PageResponse;
+import com.ascend.workflow.domain.model.WorkflowStep;
 import com.ascend.workflow.domain.model.WorkflowTemplate;
 import com.ascend.workflow.domain.service.WorkflowService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,10 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -40,6 +43,7 @@ public class WorkflowController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create a workflow template")
     public Mono<WorkflowTemplate> create(@Valid @RequestBody CreateWorkflowRequest request,
                                           Authentication auth) {
@@ -48,12 +52,17 @@ public class WorkflowController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get a workflow template by ID")
-    public Mono<WorkflowTemplate> getById(@PathVariable UUID id) {
-        return workflowService.findById(id);
+    @Operation(summary = "Get a workflow template by ID including its steps")
+    public Mono<WorkflowDetail> getById(@PathVariable UUID id) {
+        return workflowService.findById(id)
+                .flatMap(template -> workflowService.findStepsByTemplateId(id).collectList()
+                        .map(steps -> new WorkflowDetail(template, steps)));
     }
 
+    public record WorkflowDetail(WorkflowTemplate template, List<WorkflowStep> steps) {}
+
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update a workflow template")
     public Mono<WorkflowTemplate> update(@PathVariable UUID id,
                                           @Valid @RequestBody CreateWorkflowRequest request,
@@ -64,6 +73,7 @@ public class WorkflowController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Deactivate a workflow template")
     public Mono<Void> delete(@PathVariable UUID id) {
         return workflowService.delete(id);
