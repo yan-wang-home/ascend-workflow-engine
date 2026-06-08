@@ -2,6 +2,8 @@
 
 ## Part 1 — Data Model
 
+**Tech:** PostgreSQL · Spring Data R2DBC · Flyway (versioned SQL migrations) · JSONB for flexible metadata
+
 The schema (`V1__init.sql`) has 13 tables organised around three concerns:
 
 ### Core workflow tables
@@ -34,11 +36,13 @@ The schema (`V1__init.sql`) has 13 tables organised around three concerns:
 
 ## Part 2 — REST API
 
+**Tech:** Spring WebFlux (reactive controllers) · Spring Security + JWT (stateless auth) · RBAC (three roles) · Springdoc OpenAPI / Swagger UI
+
 Six controllers expose 24+ endpoints, all documented in Swagger UI.
 
 ### Endpoints by domain
 
-**Auth** — `POST /api/v1/auth/register` (always creates `REQUESTER` role; demo users are seeded via `cleanup.sql`), `POST /api/v1/auth/login`
+**Auth** — `POST /api/v1/auth/register` (defaults to `REQUESTER`; an `ADMIN` caller can assign any role via the `role` field — non-admin callers requesting a higher role receive 403), `POST /api/v1/auth/login`
 
 **Workflows (templates)** — CRUD for workflow templates and their steps. Only `ADMIN` users can create or modify templates.
 
@@ -46,9 +50,32 @@ Six controllers expose 24+ endpoints, all documented in Swagger UI.
 
 **Approvals** — `GET /api/v1/approvals/inbox` returns all pending items for the current user, merging direct approvals, group-based approvals, and delegated authority into one deduplicated list. `POST /api/v1/approvals/{requestId}/decide` records a decision and advances the workflow.
 
-**Delegations** — create and list approval authority delegations, optionally scoped to a single template.
+**Delegations** — `POST /api/v1/delegations` creates a delegation (optionally scoped to a single template). `GET /api/v1/delegations` lists the caller's own delegations. `DELETE /api/v1/delegations/{id}` revokes one.
 
 **Agent** — `POST /api/v1/agent/chat` (multi-turn AI assistant), `GET /api/v1/agent/logs` (admin only).
+
+### Authentication & Authorization
+
+**JWT token claims**
+
+| Claim | Value |
+|---|---|
+| `sub` | userId (UUID) — set as the Spring Security principal; controllers receive it via `@AuthenticationPrincipal` |
+| `email` | User's email address |
+| `role` | One of `ADMIN`, `APPROVER`, `REQUESTER` |
+| `iat` / `exp` | Issued-at / expiry (24 hours) |
+
+Tokens are signed with HMAC-SHA256. `JwtAuthenticationFilter` validates the signature and expiry on every request with no database lookup — fully stateless.
+
+**RBAC — three roles**
+
+| Role | Permissions |
+|---|---|
+| `ADMIN` | Register users with any role, full CRUD on workflow templates and groups, view agent logs (`GET /agent/logs`) |
+| `APPROVER` | Everything `REQUESTER` can do, plus make decisions (`POST /approvals/{id}/decide`) on assigned steps |
+| `REQUESTER` | Submit requests, view own requests, use the AI agent |
+
+All non-auth endpoints require a valid JWT. Role checks are enforced by Spring Security config on the `role` claim — no secondary database lookup. The `role` field on `POST /auth/register` is only honoured when the caller presents an `ADMIN` JWT; unauthenticated callers always receive `REQUESTER`.
 
 ### Advanced routing features
 
@@ -72,6 +99,8 @@ Six controllers expose 24+ endpoints, all documented in Swagger UI.
 | Unhandled | 500 |
 
 ## Part 3 — Agentic Workflow Assistant
+
+**Tech:** Anthropic API (Claude) · WebClient (non-blocking HTTP) · tool-calling loop (up to 10 iterations) · JSONB conversation history
 
 ### Architecture
 
@@ -151,6 +180,45 @@ This project was built collaboratively with **Claude Code** (Anthropic's CLI cod
 ### Honest assessment
 
 Claude Code accelerated implementation by roughly 3–4×. The highest-value contributions were the reactive service chains (which are tedious to write correctly by hand), the test cases (which required reasoning about all the mock interactions in a complex service), and the documentation (which benefited from having the full codebase in context). The lowest-value contributions were pure boilerplate (entity classes, repository interfaces) where a code generator would have done the same job. The irreplaceable human contribution was knowing *what* to build, catching design mistakes in review, and making judgment calls on tradeoffs.
+
+## Production Readiness TODO
+
+### Security
+- [ ] **JWT revocation** — add `jti` claim at generation time; `POST /auth/logout` writes `SET blocklist:<jti> 1 EX <remaining-ttl>` to Redis; filter checks `GET blocklist:<jti>` before allowing the request
+- [ ] **Refresh tokens** — replace 24h access token with 15min access token + 7-day refresh token to limit blast radius of a leaked token
+- [ ] **JWT secret rotation** — load secret from AWS Secrets Manager / HashiCorp Vault with rotation; remove the env-var fallback
+- [ ] **Delegate auth to an IdP** — Cognito, Auth0, or Keycloak handles MFA, brute-force protection, SSO, and compliance out of the box
+- [ ] **Rate limiting** — apply on `POST /auth/login` and `POST /auth/register` to prevent credential stuffing
+
+### Multi-tenancy
+- [ ] **Row-level isolation** — add `tenant_id UUID NOT NULL` to all core tables; scope every query with `AND tenant_id = :tenantId`; alternatively use PostgreSQL Row Level Security with `SET LOCAL app.current_org_id = ?` so the DB enforces the boundary without application-layer changes
+- [ ] **Tenant onboarding API** — `POST /api/v1/tenants` (platform admin only) to provision a new tenant and its first admin user
+
+### Notifications
+- [ ] **Step activation** — notify the assigned approver (email or webhook) when an `instance_step` becomes `PENDING`
+- [ ] **Escalation** — notify both the original approver and the escalation target when a step is escalated
+
+### Agent
+- [ ] **Persist full message format** — store the complete Anthropic message format (including `tool_use` and `tool_result` blocks) in `conversation_history` so the agent can reason about its own past tool calls across sessions
+- [ ] **Context management** — add token budget tracking and conversation summarisation for long-running sessions to avoid hitting the context window limit
+- [ ] **Re-evaluate Spring AI** — the library had breaking changes during development; revisit once it reaches GA for a cleaner tool-calling abstraction
+
+### Database
+- [ ] **Metadata validation** — enforce per-template JSON Schema on `POST /requests` to catch metadata field typos at the boundary (currently a typo causes a condition to silently evaluate `false` and skip the step)
+- [ ] **Connection pool tuning** — configure R2DBC pool `initial-size`, `max-size`, and `max-idle-time` for expected production concurrency
+- [ ] **Backups and PITR** — enable continuous WAL archiving and point-in-time recovery; define RTO/RPO targets
+
+### Observability
+- [ ] **Structured logging** — switch to JSON log output (Logback + `logstash-logback-encoder`) for log aggregation pipelines
+- [ ] **Metrics** — add Micrometer + Prometheus: request latency per endpoint, agent turn duration, escalation rate, approval decision rate
+- [ ] **Distributed tracing** — instrument with OpenTelemetry; propagate trace IDs through the agent tool-calling loop
+- [ ] **Health endpoints** — expose Spring Actuator `/actuator/health` and `/actuator/info`; wire into load balancer health checks
+
+### Infrastructure / CI-CD
+- [ ] **Production Dockerfile** — multi-stage build (compile → slim JRE image); separate from the local `docker-compose.yml` which is DB-only
+- [ ] **CI pipeline** — compile + test + static analysis on every pull request
+- [ ] **CD pipeline** — build and push Docker image on merge to main; deploy to staging automatically, production on manual approval
+- [ ] **Secrets management** — move `ANTHROPIC_API_KEY`, `JWT_SECRET`, and DB credentials out of env vars into a secrets manager; inject at runtime
 
 ## Technology Choices
 

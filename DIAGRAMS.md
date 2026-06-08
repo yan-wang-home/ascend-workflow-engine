@@ -1,33 +1,24 @@
 # Architecture Diagrams
 
-## 0. Overall User Flow
+## Overview
 
-```mermaid
-flowchart TD
-    subgraph Setup["Setup — Admin configures once"]
-        A["Admin\nCreate Workflow Template"]
-    end
+**Ascend** — a generic approval workflow engine with an AI agent layer.
 
-    subgraph Execution["Execution — repeats per request"]
-        B["Requester\nSubmit Request"]
-        C["Workflow Engine\nEvaluate step_conditions"]
-        D["Approver Inbox"]
-        E{Approver Decision}
-    end
+**What it does**
+- One engine, any request type — expenses, purchases, hiring — no schema changes
+- Workflow templates define the rules; the engine evaluates them at runtime against freeform JSON metadata
 
-    A --> B
-    B --> C
-    C --> D
-    D --> E
+**Five routing patterns, all configurable — no code changes**
+- **Conditional steps** — route by metadata (e.g. amount > $10k goes to VP)
+- **Parallel approvals** — multiple approvers work simultaneously
+- **Group approvals** — any member (ANY_OF) or all members (ALL_OF) can satisfy a step
+- **Delegation** — temporarily hand off approval authority to a colleague
+- **Escalation** — auto-escalate to a designated user when a step times out
 
-    E -->|"APPROVE — more steps"| C
-    E -->|REQUEST_CHANGES| B
-    E -->|REJECT| REJ([REJECTED ✗])
-    E -->|"APPROVE — done"| APP([APPROVED ✓])
-
-    AGT["AI Agent"]
-    AGT -.->|"acts as any role"| Execution
-```
+**AI Chat Agent**
+- Multi-turn agent powered by Claude — acts as any role through natural language
+- Can submit requests, check inbox, approve, create templates
+- Always confirms before any write action
 
 ---
 
@@ -137,13 +128,19 @@ flowchart TD
     subgraph Loop["AgentService — Tool-Calling Loop (up to 10 iterations)"]
         direction TB
         C["Load conversation history\nAppend user message"]
-        C --> D["Build request\nwith 14 tool schemas"]
-        D --> E["AnthropicClient\nPOST to Anthropic"]
-        E --> F{{"stop_reason?"}}
-        F -->|"tool_use"| G["Parse tool calls"]
-        G --> H["AgentToolsService\ndispatch tool calls"]
-        H --> I["Append tool results"]
-        I --> D
+        C --> D
+
+        subgraph Iter["↺  Repeats on every tool_use response"]
+            direction TB
+            D["Build request\nwith 14 tool schemas"]
+            D --> E["AnthropicClient\nPOST to Anthropic"]
+            E --> F{{"stop_reason?"}}
+            F -->|"tool_use"| G["Parse tool calls"]
+            G --> H["AgentToolsService\ndispatch tool calls"]
+            H --> I["Append tool results\nto message history"]
+            I -->|"next iteration"| D
+        end
+
         F -->|"end_turn"| J["Text response ready"]
     end
 
