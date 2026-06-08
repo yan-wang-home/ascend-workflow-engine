@@ -43,12 +43,11 @@ Open:
 
 ## Act 2 — Auth & Workflow Template (3 min)
 
-**Postman section 1 — Auth** (first time only; skip Register on repeat runs)
+**Postman section 1 — Auth**
 
-1. **Register Admin** → captures `{{admin_id}}`
-2. **Register Manager**, **Register Finance**, **Register VP** → captures `{{manager_id}}`, `{{finance_id}}`, `{{vp_id}}`
-3. **Register Requester** → captures `{{requester_id}}`
-4. **Login as Admin** → captures `{{token}}`
+> The Register requests are for illustration only — `cleanup.sql` already seeds all five users with correct roles. Skip the Register requests and start with **Login as Admin**.
+
+1. **Login as Admin** → captures `{{token}}` and `{{admin_id}}`
 
 **Postman section 2 — Workflow Administration**
 

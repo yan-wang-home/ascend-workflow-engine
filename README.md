@@ -69,9 +69,15 @@ src/main/java/com/ascend/workflow/
 
 ## Demo with Postman
 
-Import both files from the `postman/` directory:
+**1. Seed demo users** (required before first run):
+```bash
+docker exec -i ascend-postgres-1 psql -U postgres -d ascend_workflow < cleanup.sql
+```
+This creates five users (`admin@ascend.com`, `manager@ascend.com`, `finance@ascend.com`, `vp@ascend.com`, `requester@ascend.com`) with password `password123` and their correct roles.
+
+**2. Import both files** from the `postman/` directory:
 1. `Ascend_Approval_Workflow.postman_collection.json` — all API requests
-2. `Ascend_Local.postman_environment.json` — local environment variables
+2. `Ascend_Local.postman_environment.json` — local environment variables (user IDs pre-populated)
 
 The collection auto-captures the JWT token after login and propagates `requestId`, `templateId`, and other IDs between requests.
 

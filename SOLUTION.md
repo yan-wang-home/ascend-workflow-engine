@@ -38,7 +38,7 @@ Six controllers expose 24+ endpoints, all documented in Swagger UI.
 
 ### Endpoints by domain
 
-**Auth** — `POST /api/v1/auth/register`, `POST /api/v1/auth/login`
+**Auth** — `POST /api/v1/auth/register` (always creates `REQUESTER` role; demo users are seeded via `cleanup.sql`), `POST /api/v1/auth/login`
 
 **Workflows (templates)** — CRUD for workflow templates and their steps. Only `ADMIN` users can create or modify templates.
 
