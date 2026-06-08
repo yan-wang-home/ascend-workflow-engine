@@ -42,7 +42,7 @@ class MultiTurnAgentTest {
         webTestClient.post().uri("/api/v1/auth/register")
                 .bodyValue(new RegisterRequest(
                         "agent-test-" + UUID.randomUUID() + "@example.com",
-                        "password123", "Agent Tester"))
+                        "password123", "Agent Tester", null))
                 .exchange().expectStatus().isCreated();
 
         // For simplicity in test, we login with a seeded user

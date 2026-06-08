@@ -29,7 +29,7 @@ Open:
 - **Swagger UI** → http://localhost:8080/swagger-ui.html
 - **Adminer** → http://localhost:8081 (server: `postgres`, db: `ascend_workflow`, user/pass: `postgres`)
 
-> **Tip:** Run sections in order. `cleanup.sql` pre-seeds all demo users with correct roles and fixed UUIDs (already set in `Ascend_Local` environment). The Register requests in section 1 are optional — skip them if you ran `cleanup.sql`. Each "Login as X" request automatically updates `{{token}}` for the requests that follow.
+> **Tip:** Run sections in order. `cleanup.sql` seeds the admin user; all other users are registered via Postman section 1 using the admin token. On repeat runs, skip the Register requests (users already exist) and go straight to the Login requests — each one updates `{{token}}` for the requests that follow.
 
 ---
 
@@ -45,9 +45,12 @@ Open:
 
 **Postman section 1 — Auth**
 
-> The Register requests are for illustration only — `cleanup.sql` already seeds all five users with correct roles. Skip the Register requests and start with **Login as Admin**.
+1. **Login as Admin** — admin was seeded by `cleanup.sql`; captures `{{token}}` and `{{admin_id}}`
+2. **Register Manager** (uses `{{token}}` → creates APPROVER) → captures `{{manager_id}}`
+3. **Register Finance**, **Register VP** → captures `{{finance_id}}`, `{{vp_id}}`
+4. **Register Requester** → captures `{{requester_id}}`
 
-1. **Login as Admin** → captures `{{token}}` and `{{admin_id}}`
+> Point out: "The `role` field is only honoured when the request carries an ADMIN JWT — an unauthenticated caller always gets REQUESTER regardless of what they send. Admin is pre-seeded, so there's no chicken-and-egg problem."
 
 **Postman section 2 — Workflow Administration**
 

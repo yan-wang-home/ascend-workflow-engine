@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -23,9 +24,11 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a new user")
-    public Mono<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(request);
+    @Operation(summary = "Register a new user. Omit 'role' or set it to REQUESTER for self-registration. Setting any other role requires a valid ADMIN JWT — otherwise returns 400.")
+    public Mono<UserResponse> register(@Valid @RequestBody RegisterRequest request, Authentication auth) {
+        boolean callerIsAdmin = auth != null && auth.isAuthenticated()
+                && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return authService.register(request, callerIsAdmin);
     }
 
     @PostMapping("/login")

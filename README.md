@@ -69,11 +69,11 @@ src/main/java/com/ascend/workflow/
 
 ## Demo with Postman
 
-**1. Seed demo users** (required before first run):
+**1. Seed the admin user** (required before first run):
 ```bash
 docker exec -i ascend-postgres-1 psql -U postgres -d ascend_workflow < cleanup.sql
 ```
-This creates five users (`admin@ascend.com`, `manager@ascend.com`, `finance@ascend.com`, `vp@ascend.com`, `requester@ascend.com`) with password `password123` and their correct roles.
+This creates `admin@ascend.com` (password `password123`, role `ADMIN`). The other demo users are registered through Postman section 1 using the admin token.
 
 **2. Import both files** from the `postman/` directory:
 1. `Ascend_Approval_Workflow.postman_collection.json` — all API requests
@@ -83,7 +83,7 @@ The collection auto-captures the JWT token after login and propagates `requestId
 
 ## Resetting the Database
 
-`cleanup.sql` in the repo root truncates all data tables in FK-safe order, re-seeds the system user, and inserts all five demo users (`admin@ascend.com`, `manager@ascend.com`, `finance@ascend.com`, `vp@ascend.com`, `requester@ascend.com`) with their correct roles and password `password123`. Schema and Flyway migration history are preserved.
+`cleanup.sql` in the repo root truncates all data tables in FK-safe order and re-seeds two users: the internal system user and `admin@ascend.com` (password `password123`, role `ADMIN`). Schema and Flyway migration history are preserved. Re-run Postman section 1 after a reset to recreate the other demo users.
 
 ```bash
 psql -U postgres -d ascend_workflow < cleanup.sql

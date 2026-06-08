@@ -50,8 +50,31 @@ class AuthServiceTest {
         when(userRepository.save(any())).thenReturn(Mono.just(testUser));
 
         StepVerifier.create(authService.register(
-                        new RegisterRequest("test@example.com", "password12", "Test User")))
+                        new RegisterRequest("test@example.com", "password12", "Test User", null), false))
                 .expectNextMatches(u -> u.email().equals("test@example.com"))
+                .verifyComplete();
+    }
+
+    @Test
+    void register_nonAdminWithElevatedRole_fails() {
+        StepVerifier.create(authService.register(
+                        new RegisterRequest("test@example.com", "password12", "Test User", UserRole.APPROVER), false))
+                .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                        && e.getMessage().contains("ADMIN"))
+                .verify();
+    }
+
+    @Test
+    void register_adminCanAssignApproverRole() {
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(Mono.just(false));
+        when(passwordEncoder.encode("password12")).thenReturn("hashed");
+        User approverUser = User.builder().id(UUID.randomUUID()).email("test@example.com")
+                .name("Test User").role(UserRole.APPROVER).passwordHash("hashed").build();
+        when(userRepository.save(any())).thenReturn(Mono.just(approverUser));
+
+        StepVerifier.create(authService.register(
+                        new RegisterRequest("test@example.com", "password12", "Test User", UserRole.APPROVER), true))
+                .expectNextMatches(u -> u.role() == UserRole.APPROVER)
                 .verifyComplete();
     }
 
@@ -60,7 +83,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(Mono.just(true));
 
         StepVerifier.create(authService.register(
-                        new RegisterRequest("test@example.com", "password12", "Test User")))
+                        new RegisterRequest("test@example.com", "password12", "Test User", null), false))
                 .expectError(IllegalArgumentException.class)
                 .verify();
     }

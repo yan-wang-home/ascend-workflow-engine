@@ -23,17 +23,24 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public Mono<UserResponse> register(RegisterRequest request) {
+    public Mono<UserResponse> register(RegisterRequest request, boolean callerIsAdmin) {
+        if (!callerIsAdmin && request.role() != null && request.role() != UserRole.REQUESTER) {
+            return Mono.error(new IllegalArgumentException(
+                    "Only an ADMIN can assign roles other than REQUESTER"));
+        }
         return userRepository.existsByEmail(request.email())
                 .flatMap(exists -> {
                     if (exists) {
                         return Mono.error(new IllegalArgumentException("Email already registered"));
                     }
+                    UserRole role = (callerIsAdmin && request.role() != null)
+                            ? request.role()
+                            : UserRole.REQUESTER;
                     User user = User.builder()
                             .email(request.email())
                             .passwordHash(passwordEncoder.encode(request.password()))
                             .name(request.name())
-                            .role(UserRole.REQUESTER)
+                            .role(role)
                             .createdAt(OffsetDateTime.now())
                             .updatedAt(OffsetDateTime.now())
                             .build();
