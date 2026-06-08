@@ -1,85 +1,87 @@
 # Architecture Diagrams
 
-## 1. Workflow Execution Flow
+## 0. Overall User Flow
 
 ```mermaid
 flowchart TD
-    A([Submit Request]) --> B
-    B["Evaluate step_conditions against metadata\nMatching steps → PENDING · Non-matching → SKIPPED"]
-    B --> C["PENDING steps enter Approver Inbox\ndirect approver · group member · active delegate"]
-    C --> D{Decision}
+    subgraph Setup["Setup — Admin configures once"]
+        A["Admin\nCreate Workflow Template"]
+    end
 
-    D -->|REJECT| E([REJECTED ✗])
+    subgraph Execution["Execution — repeats per request"]
+        B["Requester\nSubmit Request"]
+        C["Workflow Engine\nEvaluate step_conditions"]
+        D["Approver Inbox"]
+        E{Approver Decision}
+    end
 
-    D -->|REQUEST_CHANGES| F["Requester updates and resubmits"]
-    F --> C
+    A --> B
+    B --> C
+    C --> D
+    D --> E
 
-    D -->|APPROVE| G{"ALL_OF group?\nAll members approved?"}
-    G -->|"Not yet"| C
-    G -->|"Yes, or not ALL_OF"| H{"Parallel group?\nAll steps done?"}
-    H -->|"Not yet"| C
-    H -->|"Yes, or no parallel group"| I{More step_orders?}
-    I -->|"Yes — advance"| B
-    I -->|No| J([APPROVED ✓])
+    E -->|"APPROVE — more steps"| C
+    E -->|REQUEST_CHANGES| B
+    E -->|REJECT| REJ([REJECTED ✗])
+    E -->|"APPROVE — done"| APP([APPROVED ✓])
 
-    ESC["EscalationService\nStep times out → ESCALATED\nNew PENDING step for escalation user"]
-    C -.->|on timeout| ESC
-    ESC -.->|re-enters inbox| C
+    AGT["AI Agent"]
+    AGT -.->|"acts as any role"| Execution
 ```
 
 ---
 
-## 2. System Architecture
+## 1. System Architecture
 
 ```mermaid
 graph LR
-    Client["Client\nPostman / Swagger UI"]
+    Client["Client"]
 
-    Client -->|"HTTP + Bearer JWT"| JWT["JWT Filter\nextracts userId + role"]
+    Client -->|"HTTP + Bearer JWT"| JWT["JWT Filter"]
 
     subgraph App["Spring Boot — port 8080"]
         JWT
 
         subgraph REST["REST API Layer"]
             direction TB
-            AuthCtrl["AuthController\nPOST /auth/register\nPOST /auth/login"]
-            WorkflowCtrl["WorkflowController\nCRUD /workflows"]
-            RequestCtrl["RequestController\nPOST /requests · GET /requests"]
-            ApprovalCtrl["ApprovalController\nGET /approvals/inbox\nPOST /approvals/:id/decide"]
-            DelegationCtrl["DelegationController\n/delegations"]
-            GroupCtrl["GroupController\n/groups"]
+            AuthCtrl["AuthController"]
+            WorkflowCtrl["WorkflowController"]
+            RequestCtrl["RequestController"]
+            ApprovalCtrl["ApprovalController"]
+            DelegationCtrl["DelegationController"]
+            GroupCtrl["GroupController"]
         end
 
         subgraph AgentBox["Agent Layer"]
             direction TB
-            AgentCtrl["AgentController\nPOST /agent/chat\nGET  /agent/logs"]
-            AgentSvc["AgentService\ntool-calling loop · up to 10 iterations"]
-            AgentTools["AgentToolsService\ndispatches tool calls to services"]
-            ToolDefs["ToolDefinitions\n14 tool schemas"]
-            AnthClient["AnthropicClient\nWebClient"]
+            AgentCtrl["AgentController"]
+            AgentSvc["AgentService"]
+            AgentTools["AgentToolsService"]
+            ToolDefs["ToolDefinitions"]
+            AnthClient["AnthropicClient"]
             AgentCtrl ~~~ AgentSvc
             AgentSvc ~~~ AgentTools
             AgentTools ~~~ ToolDefs
             ToolDefs ~~~ AnthClient
         end
 
-        subgraph Services["Service Layer — shared by REST and Agent"]
+        subgraph Services["Service Layer"]
             direction TB
             AuthSvc["AuthService"]
             WorkflowSvc["WorkflowService"]
-            RequestSvc["RequestService\n+ ConditionEvaluator"]
+            RequestSvc["RequestService"]
             ApprovalSvc["ApprovalService"]
             DelegationSvc["DelegationService"]
             GroupSvc["GroupService"]
-            EscSvc["EscalationService\nThreadPoolTaskScheduler"]
-            AuditSvc["AuditService\n(immutable audit trail)"]
+            EscSvc["EscalationService"]
+            AuditSvc["AuditService"]
         end
 
-        Repos["Repository Layer\n12 Spring Data R2DBC repositories"]
+        Repos["Repository Layer"]
     end
 
-    DB[("PostgreSQL\nascend_workflow\n13 tables")]
-    AnthAPI["Anthropic API\napi.anthropic.com\nClaude claude-sonnet-4-6"]
+    DB[("PostgreSQL")]
+    AnthAPI["Anthropic API"]
 
     JWT --> AuthCtrl
     JWT --> WorkflowCtrl
@@ -122,36 +124,36 @@ graph LR
 
 ---
 
-## 3. Agent Layer — Detailed
+## 2. Agent Layer — Detailed
 
 ```mermaid
 flowchart TD
-    A["POST /api/v1/agent/chat\n{ sessionId?, message }"]
+    A["POST /agent/chat"]
 
-    A --> B["AgentController\nExtract userId from JWT\nResolve or create AgentSession"]
+    A --> B["AgentController"]
 
     B --> C
 
     subgraph Loop["AgentService — Tool-Calling Loop (up to 10 iterations)"]
         direction TB
-        C["Load conversation_history\nfrom agent_sessions (JSONB)\nAppend new user message"]
-        C --> D["Build Anthropic request:\nfull message history + all 14 tool schemas"]
-        D --> E["AnthropicClient\nPOST api.anthropic.com/v1/messages\n(WebClient, non-blocking)"]
+        C["Load conversation history\nAppend user message"]
+        C --> D["Build request\nwith 14 tool schemas"]
+        D --> E["AnthropicClient\nPOST to Anthropic"]
         E --> F{{"stop_reason?"}}
-        F -->|"tool_use"| G["Parse tool calls\nfrom response content blocks"]
-        G --> H["AgentToolsService.dispatch()\nswitch on tool name → service call → JSON result"]
-        H --> I["Append tool results\nas next user turn"]
+        F -->|"tool_use"| G["Parse tool calls"]
+        G --> H["AgentToolsService\ndispatch tool calls"]
+        H --> I["Append tool results"]
         I --> D
-        F -->|"end_turn"| J["Final text response ready"]
+        F -->|"end_turn"| J["Text response ready"]
     end
 
-    J --> K["Persist turn\nagent_sessions.conversation_history\n(text pairs only — stays compact\nacross many turns)"]
-    J --> L["agent_logs\nuser_message + all tool_calls JSONB\n(name, input, result, duration_ms)\n+ final assistant_response"]
-    J --> M["Return text to caller"]
+    J --> K["Persist to\nconversation_history"]
+    J --> L["Log to agent_logs\n(full tool trace)"]
+    J --> M["Return response"]
 
     subgraph Tools["AgentToolsService — 14 Tools"]
         direction LR
-        subgraph Read["Read-only (no confirmation)"]
+        subgraph Read["Read-only"]
             R1["list_workflow_templates"]
             R2["get_pending_approvals"]
             R3["get_request_details"]
@@ -171,7 +173,7 @@ flowchart TD
         end
     end
 
-    H -->|"direct service call\nno internal HTTP"| SvcLayer["WorkflowService · RequestService\nApprovalService · DelegationService\nGroupService · UserRepository"]
+    H --> SvcLayer["Service Layer"]
 
     Tools -.->|"used by"| H
 ```
@@ -184,16 +186,17 @@ flowchart TD
 
 ---
 
-## 4. Data Model
+## 3. Data Model
 
 ```mermaid
 erDiagram
+    %% ── Identity ──────────────────────────────────────────
     users {
         uuid id PK
         varchar email
         varchar password_hash
         varchar name
-        varchar role "ADMIN | APPROVER | REQUESTER"
+        varchar role
     }
 
     user_groups {
@@ -207,6 +210,7 @@ erDiagram
         uuid user_id FK
     }
 
+    %% ── Template — design-time ────────────────────────────
     workflow_templates {
         uuid id PK
         varchar name
@@ -219,11 +223,11 @@ erDiagram
         uuid id PK
         uuid template_id FK
         int step_order
-        int parallel_group "null = sequential"
+        int parallel_group
         varchar name
-        varchar approver_type "USER | GROUP | ROLE"
+        varchar approver_type
         varchar approver_id
-        varchar approval_mode "ANY_OF | ALL_OF"
+        varchar approval_mode
         int timeout_hours
         uuid escalation_user_id FK
     }
@@ -231,18 +235,19 @@ erDiagram
     step_conditions {
         uuid id PK
         uuid step_id FK
-        varchar field_name "matches metadata key"
-        varchar operator "EQ|NEQ|GT|GTE|LT|LTE|IN|CONTAINS"
+        varchar field_name
+        varchar operator
         varchar value
     }
 
+    %% ── Execution — runtime ───────────────────────────────
     workflow_instances {
         uuid id PK
         uuid template_id FK
         uuid requester_id FK
         varchar title
-        varchar status "PENDING|APPROVED|REJECTED|CANCELLED"
-        jsonb metadata "freeform request data"
+        varchar status
+        jsonb metadata
         int current_step_order
     }
 
@@ -252,10 +257,10 @@ erDiagram
         uuid step_id FK
         int step_order
         int parallel_group
-        varchar status "PENDING|APPROVED|REJECTED|SKIPPED|ESCALATED"
+        varchar status
         timestamptz started_at
         timestamptz completed_at
-        timestamptz escalated_at "set to prevent double-escalation"
+        timestamptz escalated_at
         uuid escalated_to_user_id FK
     }
 
@@ -263,21 +268,23 @@ erDiagram
         uuid id PK
         uuid instance_step_id FK
         uuid approver_id FK
-        varchar action "APPROVE|REJECT|REQUEST_CHANGES"
+        varchar action
         text comment
         timestamptz decided_at
     }
 
+    %% ── Delegation ────────────────────────────────────────
     delegations {
         uuid id PK
         uuid delegator_id FK
         uuid delegate_id FK
-        uuid template_id FK "null = all templates"
+        uuid template_id FK
         timestamptz starts_at
         timestamptz ends_at
         boolean is_active
     }
 
+    %% ── System ────────────────────────────────────────────
     audit_trail {
         uuid id PK
         uuid instance_id FK
@@ -290,7 +297,7 @@ erDiagram
     agent_sessions {
         uuid id PK
         uuid user_id FK
-        jsonb conversation_history "array of role/content pairs"
+        jsonb conversation_history
         timestamptz updated_at
     }
 
@@ -298,7 +305,7 @@ erDiagram
         uuid id PK
         uuid session_id FK
         text user_message
-        jsonb tool_calls "name + input + result per tool"
+        jsonb tool_calls
         text assistant_response
         bigint duration_ms
     }
@@ -320,4 +327,89 @@ erDiagram
     workflow_instances ||--o{ audit_trail      : "logged for"
     users            ||--o{ agent_sessions     : "has"
     agent_sessions   ||--o{ agent_logs         : "contains"
+```
+
+---
+
+## Supported Workflow Execution Use Cases
+
+### 4a. Normal Flow
+
+```mermaid
+flowchart TD
+    A([Submit Request]) --> B
+    B["Evaluate step_conditions\nPENDING or SKIPPED"]
+    B --> C["Approver Inbox"]
+    C --> D{Decision}
+    D -->|REJECT| E([REJECTED ✗])
+    D -->|REQUEST_CHANGES| F["Requester resubmits"]
+    F --> C
+    D -->|APPROVE| G{More steps?}
+    G -->|Yes| B
+    G -->|No| H([APPROVED ✓])
+```
+
+---
+
+### 4b. Delegation
+
+```mermaid
+flowchart TD
+    A["Delegator creates delegation"]
+    A --> B["Step becomes PENDING\nassigned to Delegator"]
+    B --> C["Delegate's inbox\nincludes delegated steps"]
+    C --> D{Delegate decides}
+    D --> E["Decision recorded\nunder Delegate's userId"]
+    E --> F([APPROVED ✓])
+```
+
+---
+
+### 4c. Group Approval — ANY_OF and ALL_OF
+
+```mermaid
+flowchart LR
+    subgraph ANYOF["ANY_OF — first member is enough"]
+        A1["Step assigned to group"] --> B1{First member approves}
+        B1 --> C1([APPROVED ✓])
+    end
+
+    subgraph ALLOF["ALL_OF — every member must approve"]
+        A2["Step assigned to group"] --> B2{Member approves}
+        B2 --> C2{All members approved?}
+        C2 -->|"No — wait"| B2
+        C2 -->|Yes| D2([APPROVED ✓])
+    end
+```
+
+---
+
+### 4d. Parallel Approval
+
+```mermaid
+flowchart TD
+    A["Parallel steps activate\nsame step_order + parallel_group"]
+    A --> B["Each approver sees step in inbox"]
+    B --> C{Approver decides}
+    C -->|APPROVE| D{"All parallel steps\ndone?"}
+    D -->|"No — wait"| B
+    D -->|Yes| E["Advance to next step_order"]
+    E --> F([Next steps activate])
+```
+
+---
+
+### 4e. Escalation
+
+```mermaid
+flowchart TD
+    A["Step becomes PENDING\nscheduleEscalation() called"] --> B{Decided before timeout?}
+    B -->|Yes| C["cancelEscalation()\nNo escalation fires"]
+    B -->|"No — timer fires"| D["doEscalate()\nRe-fetch + idempotency check"]
+    D -->|"Guard fails"| E["No-op\nDecision already arrived"]
+    D -->|"Guard passes"| F["Original step → ESCALATED"]
+    F --> G["New PENDING step\nassigned to escalation_user_id"]
+    G --> H["Escalation user inbox"]
+    H --> I{Escalation user decides}
+    I --> J([Workflow advances])
 ```

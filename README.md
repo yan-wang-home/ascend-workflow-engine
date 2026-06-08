@@ -80,7 +80,7 @@ The collection auto-captures the JWT token after login and propagates `requestId
 `cleanup.sql` in the repo root truncates all data tables in FK-safe order and re-seeds the system user. Schema and Flyway migration history are preserved.
 
 ```bash
-psql -U postgres < cleanup.sql
+psql -U postgres -d ascend_workflow < cleanup.sql
 # or via Docker:
-docker exec -i ascend-postgres psql -U postgres < cleanup.sql
+docker exec -i ascend-postgres-1 psql -U postgres -d ascend_workflow < cleanup.sql
 ```

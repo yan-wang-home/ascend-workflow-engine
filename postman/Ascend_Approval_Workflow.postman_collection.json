@@ -661,8 +661,7 @@
       ]
     },
     {
-      "name": "3. Request Submission",
-      "description": "Requester submits 3 requests \u2014 different amounts trigger different step paths.",
+      "name": "3. Normal Flow",
       "item": [
         {
           "name": "Login as Requester",
@@ -835,13 +834,7 @@
               }
             ]
           }
-        }
-      ]
-    },
-    {
-      "name": "4. Approval Inbox & Decisions",
-      "description": "Full 3-approver chain on $15k. REQUEST_CHANGES loop on $7k: Manager requests changes \u2192 Requester resubmits with vendor quote \u2192 Manager approves.",
-      "item": [
+        },
         {
           "name": "Login as Manager",
           "event": [
@@ -1224,10 +1217,11 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Requester submits 3 requests \u2014 different amounts trigger different step paths."
     },
     {
-      "name": "5. Delegation",
+      "name": "4. Delegation",
       "description": "Manager delegates to Requester. A fresh request is submitted so the inbox is populated after Act 4 approved everything.",
       "item": [
         {
@@ -1480,7 +1474,7 @@
       ]
     },
     {
-      "name": "6. Group Approval",
+      "name": "5. Group Approval",
       "description": "Finance + VP are members of Finance Team. VP approves \u2014 demonstrating any group member can decide.",
       "item": [
         {
@@ -1814,7 +1808,7 @@
       ]
     },
     {
-      "name": "7. Parallel Approval",
+      "name": "6. Parallel Approval",
       "description": "Manager and Finance approve simultaneously (parallel_group=1). Both must complete before VP's final sign-off activates.",
       "item": [
         {
@@ -2119,7 +2113,7 @@
       ]
     },
     {
-      "name": "8. Escalation Demo",
+      "name": "7. Escalation Demo",
       "description": "Requires app running with APP_ESCALATION_TIMEOUT_HOUR_IN_SECONDS=60. Manager step times out after 60s and escalates to VP.",
       "item": [
         {
@@ -2315,11 +2309,11 @@
       ]
     },
     {
-      "name": "9. Agent Chat",
+      "name": "8. Agent Chat",
       "description": "Multi-turn AI assistant. Finance reviews their inbox, submits a request (3 turns), then approves via agent (3 turns). Admin views logs at the end.",
       "item": [
         {
-          "name": "9a. Normal Flow \u2014 Create Template, Submit, Approve",
+          "name": "8a. Normal Flow \u2014 Create Template, Submit, Approve",
           "item": [
             {
               "name": "Login as Admin",
@@ -2761,7 +2755,7 @@
           ]
         },
         {
-          "name": "9b. Delegation \u2014 Manager Delegates to VP",
+          "name": "8b. Delegation \u2014 Manager Delegates to VP",
           "item": [
             {
               "name": "Login as Admin",
@@ -3224,7 +3218,7 @@
           ]
         },
         {
-          "name": "9c. Group Approval \u2014 ALL_OF Finance Committee",
+          "name": "8c. Group Approval \u2014 ALL_OF Finance Committee",
           "item": [
             {
               "name": "Login as Admin",
@@ -3666,7 +3660,7 @@
           ]
         },
         {
-          "name": "9d. Parallel Approval \u2014 Manager & Finance in Parallel, then VP",
+          "name": "8d. Parallel Approval \u2014 Manager & Finance in Parallel, then VP",
           "item": [
             {
               "name": "Login as Admin",
@@ -4087,7 +4081,7 @@
           ]
         },
         {
-          "name": "9e. Escalation \u2014 Times Out to VP (60s with demo config)",
+          "name": "8e. Escalation \u2014 Times Out to VP (60s with demo config)",
           "item": [
             {
               "name": "Login as Admin",
