@@ -16,8 +16,9 @@
 ## Setup
 
 ```bash
-# 1. Start database
+# 1. Start database and seed demo users
 docker-compose up -d
+docker exec -i ascend-postgres-1 psql -U postgres -d ascend_workflow < cleanup.sql
 
 # 2. Start the app with live-escalation config (1 timeout_hour = 60 seconds)
 APP_ESCALATION_TIMEOUT_HOUR_IN_SECONDS=60 ./gradlew bootRun
@@ -28,7 +29,7 @@ Open:
 - **Swagger UI** → http://localhost:8080/swagger-ui.html
 - **Adminer** → http://localhost:8081 (server: `postgres`, db: `ascend_workflow`, user/pass: `postgres`)
 
-> **Tip:** Run sections in order. Each "Login as X" request inside a section automatically updates `{{token}}` for the requests that follow. On repeat runs, skip the Register requests and start from the Login requests — each repopulates its `_id` variable.
+> **Tip:** Run sections in order. `cleanup.sql` pre-seeds all demo users with correct roles and fixed UUIDs (already set in `Ascend_Local` environment). The Register requests in section 1 are optional — skip them if you ran `cleanup.sql`. Each "Login as X" request automatically updates `{{token}}` for the requests that follow.
 
 ---
 

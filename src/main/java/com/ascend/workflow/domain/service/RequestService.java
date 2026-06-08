@@ -4,6 +4,7 @@ import com.ascend.workflow.api.dto.ResubmitRequestDto;
 import com.ascend.workflow.api.dto.SubmitRequestDto;
 import com.ascend.workflow.domain.model.InstanceStep;
 import com.ascend.workflow.domain.model.InstanceStepStatus;
+import com.ascend.workflow.domain.model.StepCondition;
 import com.ascend.workflow.domain.model.WorkflowInstance;
 import com.ascend.workflow.domain.model.WorkflowInstanceStatus;
 import com.ascend.workflow.domain.model.WorkflowStep;
@@ -22,9 +23,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -63,15 +66,22 @@ public class RequestService {
 
     private Mono<Void> instantiateSteps(WorkflowInstance instance, Map<String, Object> metadata) {
         return stepRepository.findByTemplateIdOrderByStepOrderAsc(instance.getTemplateId())
-                .flatMap(step -> evaluateAndCreateStep(instance, step, metadata))
-                .then();
+                .collectList()
+                .flatMap(steps -> {
+                    List<UUID> stepIds = steps.stream().map(WorkflowStep::getId).collect(Collectors.toList());
+                    return conditionRepository.findByStepIdIn(stepIds)
+                            .collectMultimap(StepCondition::getStepId)
+                            .flatMap(conditionsByStepId -> Flux.fromIterable(steps)
+                                    .flatMap(step -> evaluateAndCreateStep(instance, step, metadata,
+                                            new ArrayList<>(conditionsByStepId.getOrDefault(step.getId(), List.of()))))
+                                    .then());
+                });
     }
 
     private Mono<InstanceStep> evaluateAndCreateStep(WorkflowInstance instance, WorkflowStep step,
-                                                      Map<String, Object> metadata) {
-        return conditionRepository.findByStepId(step.getId())
-                .collectList()
-                .flatMap(conditions -> {
+                                                      Map<String, Object> metadata,
+                                                      List<StepCondition> conditions) {
+        return Mono.defer(() -> {
                     boolean conditionsMet;
                     if (conditions.isEmpty()) {
                         conditionsMet = true;

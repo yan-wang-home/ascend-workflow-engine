@@ -3,7 +3,7 @@ package com.ascend.workflow.api;
 import com.ascend.workflow.api.dto.LoginRequest;
 import com.ascend.workflow.api.dto.LoginResponse;
 import com.ascend.workflow.api.dto.RegisterRequest;
-import com.ascend.workflow.domain.model.User;
+import com.ascend.workflow.api.dto.UserResponse;
 import com.ascend.workflow.domain.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,7 +24,7 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register a new user")
-    public Mono<User> register(@Valid @RequestBody RegisterRequest request) {
+    public Mono<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 

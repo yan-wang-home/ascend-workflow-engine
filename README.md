@@ -77,7 +77,7 @@ The collection auto-captures the JWT token after login and propagates `requestId
 
 ## Resetting the Database
 
-`cleanup.sql` in the repo root truncates all data tables in FK-safe order and re-seeds the system user. Schema and Flyway migration history are preserved.
+`cleanup.sql` in the repo root truncates all data tables in FK-safe order, re-seeds the system user, and inserts all five demo users (`admin@ascend.com`, `manager@ascend.com`, `finance@ascend.com`, `vp@ascend.com`, `requester@ascend.com`) with their correct roles and password `password123`. Schema and Flyway migration history are preserved.
 
 ```bash
 psql -U postgres -d ascend_workflow < cleanup.sql

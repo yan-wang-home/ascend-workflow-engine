@@ -139,7 +139,7 @@ public class AgentService {
         }
 
         log.warn("Agent loop exceeded max iterations for user {}", user.getId());
-        return new AgentResult("I was unable to complete the request within the allowed steps.", "[]");
+        return new AgentResult("I wasn't able to complete this in a single response. Please try rephrasing your request or breaking it into smaller steps.", "[]");
     }
 
     private String extractText(JsonNode contentArray) {
@@ -155,6 +155,7 @@ public class AgentService {
     private Mono<AgentSession> loadOrCreateSession(UUID userId, UUID sessionId) {
         if (sessionId != null) {
             return sessionRepository.findById(sessionId)
+                    .filter(s -> userId.equals(s.getUserId()))
                     .switchIfEmpty(sessionRepository.findByUserId(userId))
                     .switchIfEmpty(createSession(userId));
         }

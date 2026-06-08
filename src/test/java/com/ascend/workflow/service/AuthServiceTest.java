@@ -46,12 +46,12 @@ class AuthServiceTest {
     @Test
     void register_success() {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(Mono.just(false));
-        when(passwordEncoder.encode("password")).thenReturn("hashed");
+        when(passwordEncoder.encode("password12")).thenReturn("hashed");
         when(userRepository.save(any())).thenReturn(Mono.just(testUser));
 
         StepVerifier.create(authService.register(
-                        new RegisterRequest("test@example.com", "password", "Test User", UserRole.REQUESTER)))
-                .expectNextMatches(u -> u.getEmail().equals("test@example.com"))
+                        new RegisterRequest("test@example.com", "password12", "Test User")))
+                .expectNextMatches(u -> u.email().equals("test@example.com"))
                 .verifyComplete();
     }
 
@@ -60,7 +60,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(Mono.just(true));
 
         StepVerifier.create(authService.register(
-                        new RegisterRequest("test@example.com", "password", "Test User", UserRole.REQUESTER)))
+                        new RegisterRequest("test@example.com", "password12", "Test User")))
                 .expectError(IllegalArgumentException.class)
                 .verify();
     }

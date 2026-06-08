@@ -3,7 +3,9 @@ package com.ascend.workflow.domain.service;
 import com.ascend.workflow.api.dto.LoginRequest;
 import com.ascend.workflow.api.dto.LoginResponse;
 import com.ascend.workflow.api.dto.RegisterRequest;
+import com.ascend.workflow.api.dto.UserResponse;
 import com.ascend.workflow.domain.model.User;
+import com.ascend.workflow.domain.model.UserRole;
 import com.ascend.workflow.infrastructure.repository.UserRepository;
 import com.ascend.workflow.infrastructure.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public Mono<User> register(RegisterRequest request) {
+    public Mono<UserResponse> register(RegisterRequest request) {
         return userRepository.existsByEmail(request.email())
                 .flatMap(exists -> {
                     if (exists) {
@@ -31,11 +33,11 @@ public class AuthService {
                             .email(request.email())
                             .passwordHash(passwordEncoder.encode(request.password()))
                             .name(request.name())
-                            .role(request.role())
+                            .role(UserRole.REQUESTER)
                             .createdAt(OffsetDateTime.now())
                             .updatedAt(OffsetDateTime.now())
                             .build();
-                    return userRepository.save(user);
+                    return userRepository.save(user).map(UserResponse::from);
                 });
     }
 

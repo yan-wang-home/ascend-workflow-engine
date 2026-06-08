@@ -14,17 +14,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
 
+@Validated
 @RestController
 @RequestMapping("/api/v1/requests")
 @RequiredArgsConstructor
@@ -48,7 +51,7 @@ public class RequestController {
     @Operation(summary = "List my submitted requests (paginated)")
     public Mono<PageResponse<WorkflowInstance>> list(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "20") @Max(200) int size,
             Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -59,13 +62,21 @@ public class RequestController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get request details including steps and their decisions")
-    public Mono<WorkflowInstanceDetail> getById(@PathVariable UUID id) {
+    public Mono<WorkflowInstanceDetail> getById(@PathVariable UUID id, Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
         return requestService.findById(id)
-                .flatMap(instance -> requestService.findStepsByInstanceId(id)
-                        .flatMap(step -> decisionRepository.findByInstanceStepId(step.getId()).collectList()
-                                .map(decisions -> new StepWithDecisions(step, decisions)))
-                        .collectList()
-                        .map(steps -> new WorkflowInstanceDetail(instance, steps)));
+                .flatMap(instance -> {
+                    boolean isAdmin = auth.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                    if (!isAdmin && !instance.getRequesterId().equals(userId)) {
+                        return Mono.error(new SecurityException("Not authorized to view this request"));
+                    }
+                    return requestService.findStepsByInstanceId(id)
+                            .flatMap(step -> decisionRepository.findByInstanceStepId(step.getId()).collectList()
+                                    .map(decisions -> new StepWithDecisions(step, decisions)))
+                            .collectList()
+                            .map(steps -> new WorkflowInstanceDetail(instance, steps));
+                });
     }
 
     @GetMapping("/{id}/audit")
@@ -73,7 +84,7 @@ public class RequestController {
     public Mono<PageResponse<AuditTrail>> getAudit(
             @PathVariable UUID id,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(defaultValue = "50") @Max(200) int size) {
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
         return auditTrailRepository.findByInstanceIdOrderByCreatedAtAsc(id, pageable).collectList()
                 .zipWith(auditTrailRepository.countByInstanceId(id))

@@ -287,7 +287,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Admin User\",\n  \"role\": \"ADMIN\"\n}"
+              "raw": "{\n  \"email\": \"admin@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Admin User\"\n}"
             }
           }
         },
@@ -314,7 +314,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Alice Manager\",\n  \"role\": \"APPROVER\"\n}"
+              "raw": "{\n  \"email\": \"manager@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Alice Manager\"\n}"
             }
           }
         },
@@ -341,7 +341,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Bob Finance\",\n  \"role\": \"APPROVER\"\n}"
+              "raw": "{\n  \"email\": \"finance@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Bob Finance\"\n}"
             }
           }
         },
@@ -368,7 +368,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Carol VP\",\n  \"role\": \"APPROVER\"\n}"
+              "raw": "{\n  \"email\": \"vp@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Carol VP\"\n}"
             }
           }
         },
@@ -395,7 +395,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Jane Requester\",\n  \"role\": \"REQUESTER\"\n}"
+              "raw": "{\n  \"email\": \"requester@ascend.com\",\n  \"password\": \"password123\",\n  \"name\": \"Jane Requester\"\n}"
             }
           }
         },

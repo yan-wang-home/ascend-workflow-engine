@@ -21,6 +21,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -132,8 +133,10 @@ public class WorkflowService {
                     template.setUpdatedAt(OffsetDateTime.now());
                     return templateRepository.save(template)
                             .flatMap(saved -> stepRepository.findByTemplateIdOrderByStepOrderAsc(id)
-                                    .flatMap(step -> conditionRepository.findByStepId(step.getId())
-                                            .flatMap(conditionRepository::delete).then(stepRepository.delete(step)))
+                                    .map(step -> step.getId()).collectList()
+                                    .flatMap(stepIds -> conditionRepository.deleteByStepIdIn(stepIds)
+                                            .then(Flux.fromIterable(stepIds)
+                                                    .flatMap(stepRepository::deleteById).then()))
                                     .then(saveSteps(id, request.steps()))
                                     .then(Mono.just(saved)));
                 });
@@ -146,9 +149,10 @@ public class WorkflowService {
                             if (count == 0) {
                                 // No instances — hard delete steps, conditions, and template
                                 return stepRepository.findByTemplateIdOrderByStepOrderAsc(id)
-                                        .flatMap(step -> conditionRepository.findByStepId(step.getId())
-                                                .flatMap(conditionRepository::delete)
-                                                .then(stepRepository.delete(step)))
+                                        .map(step -> step.getId()).collectList()
+                                        .flatMap(stepIds -> conditionRepository.deleteByStepIdIn(stepIds)
+                                                .then(Flux.fromIterable(stepIds)
+                                                        .flatMap(stepRepository::deleteById).then()))
                                         .then(templateRepository.delete(template));
                             } else {
                                 // Instances exist — soft delete to preserve history
