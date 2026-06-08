@@ -3,6 +3,7 @@ package com.ascend.workflow.domain.service;
 import com.ascend.workflow.api.dto.CreateWorkflowRequest;
 import com.ascend.workflow.api.dto.StepConditionDto;
 import com.ascend.workflow.api.dto.WorkflowStepDto;
+import com.ascend.workflow.domain.model.ApprovalMode;
 import com.ascend.workflow.domain.model.ApproverType;
 import com.ascend.workflow.domain.model.StepCondition;
 import com.ascend.workflow.domain.model.WorkflowStep;
@@ -62,6 +63,7 @@ public class WorkflowService {
                 .then();
     }
 
+    @Transactional
     public Mono<WorkflowTemplate> create(CreateWorkflowRequest request, UUID createdBy) {
         WorkflowTemplate template = WorkflowTemplate.builder()
                 .name(request.name())
@@ -87,7 +89,7 @@ public class WorkflowService {
                             .name(dto.name())
                             .approverType(dto.approverType())
                             .approverId(dto.approverId())
-                            .approvalMode(dto.approvalMode())
+                            .approvalMode(dto.approvalMode() != null ? dto.approvalMode() : ApprovalMode.ANY_OF)
                             .timeoutHours(dto.timeoutHours())
                             .escalationUserId(dto.escalationUserId())
                             .createdAt(OffsetDateTime.now())

@@ -15,7 +15,7 @@ public record WorkflowStepDto(
         @NotBlank String name,
         @NotNull ApproverType approverType,
         @NotBlank String approverId,
-        @NotNull ApprovalMode approvalMode,
+        ApprovalMode approvalMode,
         Integer timeoutHours,
         UUID escalationUserId,
         List<StepConditionDto> conditions
