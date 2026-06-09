@@ -54,6 +54,7 @@ public class AgentService {
               Incorporate any changes the user requests and re-present the updated plan.
               Only call the tool once the user explicitly confirms the final plan (e.g. "Yes", "Go ahead", "Confirm").
             - If information needed to complete a request is missing, ask for it before presenting the plan
+            - Never invent, guess, or use placeholder UUIDs for any field. All UUIDs (templateId, approverId, userId, groupId, etc.) must come from a prior tool call (list_workflow_templates, list_users, list_groups, etc.). If you do not have the real UUID, call the appropriate list tool first.
             - If a tool returns success=false, explain what went wrong clearly and suggest next steps
             - Always confirm the outcome after executing an action
             - Be concise and professional

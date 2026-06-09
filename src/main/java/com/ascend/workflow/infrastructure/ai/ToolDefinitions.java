@@ -111,7 +111,7 @@ public class ToolDefinitions {
     private ObjectNode schemaForSubmit() {
         ObjectNode schema = mapper.createObjectNode().put("type", "object");
         ObjectNode props = mapper.createObjectNode();
-        props.set("templateId", mapper.createObjectNode().put("type", "string").put("description", "UUID of the workflow template to use"));
+        props.set("templateId", mapper.createObjectNode().put("type", "string").put("description", "UUID of the workflow template to use — must be a real UUID from list_workflow_templates, never a placeholder"));
         props.set("title", mapper.createObjectNode().put("type", "string").put("description", "Short title for the request"));
         props.set("metadata", mapper.createObjectNode().put("type", "object").put("description", "Request details as key-value pairs (amount, vendor, description, etc.)"));
         schema.set("properties", props);
@@ -138,7 +138,7 @@ public class ToolDefinitions {
         props.set("steps", mapper.createObjectNode().put("type", "array").put("description",
                 "List of approval steps. Each step: stepOrder (int), name (string), approverType (USER|GROUP|ROLE), " +
                 "approverId (UUID of user or group), approvalMode (ANY_OF|ALL_OF, for GROUP only), " +
-                "parallelGroup (string tag — steps with same stepOrder and parallelGroup run in parallel), " +
+                "parallelGroup (integer — steps sharing the same stepOrder AND the same parallelGroup integer run in parallel; omit for sequential steps), " +
                 "timeoutHours (int, optional — escalate after this many hours), " +
                 "escalationUserId (UUID, optional — who to escalate to), " +
                 "conditions (array of {field, operator, value} — skip step if conditions not met)"));
